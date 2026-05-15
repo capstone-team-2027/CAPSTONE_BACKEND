@@ -1,0 +1,8 @@
+// constants/roles.js
+module.exports = {
+    ADMIN: 'ADMIN',
+    RECEPTIONIST: 'RECEPTIONIST',
+    TECHNICIAN_LEADER: 'TECHNICIAN_LEADER',
+    TECHNICIAN: 'TECHNICIAN',
+    CUSTOMER: 'CUSTOMER'
+};
