@@ -31,18 +31,18 @@ module.exports.login = async (phone, password) => {
             id: user.id,
             roleId: user.roleId
         },
-        process.env.ACCESSTOKEN_KEY,
+        process.env.ACCESS_TOKEN_KEY,
         {
-            expiresIn: process.env.ACCESSTOKEN_ExpiresIn,
+            expiresIn: process.env.ACCESS_TOKEN_EXPIRES_IN,
         }
     );
     const refreshToken = jwt.sign(
         {
             id: user.id
         },
-        process.env.Refresh_Token,
+        process.env.REFRESH_TOKEN_KEY,
         {
-            expiresIn: process.env.REFESHTOKEN_ExpiresIn,
+            expiresIn: process.env.REFRESH_TOKEN_EXPIRES_IN,
         }
     );
     user.refreshToken = refreshToken;
