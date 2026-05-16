@@ -4,11 +4,6 @@ const {
 } = require('sequelize');
 module.exports = (sequelize, DataTypes) => {
   class User extends Model {
-    /**
-     * Helper method for defining associations.
-     * This method is not a part of Sequelize lifecycle.
-     * The `models/index` file will call this method automatically.
-     */
     static associate(models) {
       //n-1
       User.belongsTo(models.Role, {
@@ -60,23 +55,16 @@ module.exports = (sequelize, DataTypes) => {
     },
     status: {
       type: DataTypes.STRING(50),
-      defaultValue: 'ACTIVE', // ACTIVE, INACTIVE, BANNED 
+      defaultValue: 'PENDING', 
       validate: {
-        isIn: [['ACTIVE', 'INACTIVE', 'BANNED']]
+        isIn: [['PENDING','ACTIVE', 'INACTIVE', 'BANNED']]
       }
     },
     hasDrivingLicense: {
       type: DataTypes.BOOLEAN,
       defaultValue: false
     },
-    otpCode: {
-      type: DataTypes.STRING(10),
-      allowNull: true,
-    },
-    otpExpiration: {
-      type: DataTypes.DATE,
-      allowNull: true,
-    },
+
   }, {
     sequelize,
     modelName: 'User',
