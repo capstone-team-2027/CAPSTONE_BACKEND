@@ -4,112 +4,149 @@ const User = db.User;
 const Role = db.Role;
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
-const axios = require('axios');
+const axios = require("axios");
 const { normalizeVnPhone } = require("../../util/phone.util");
 const { where } = require("sequelize");
 
 module.exports.login = async (phone, password) => {
-    const user = await User.findOne({
-        where: {
-            phoneNumber: phone
-        },
-        include: [
-            {
-                model: db.Role,
-                as: "role"
-            }
-        ]
+  const user = await User.findOne({
+    where: {
+      phoneNumber: phone,
+    },
+    include: [
+      {
+        model: db.Role,
+        as: "role",
+      },
+    ],
+  });
+  if (!user) {
+    return res.status(404).json({
+      message: "Sdt hoặc Mật khẩu bị sai ",
     });
-    if (!user) {
-        return res.status(404).json({
-            message: "Sdt hoặc Mật khẩu bị sai "
-        })
+  }
+  const isMatch = await bcrypt.compare(password, user.password);
+  if (!isMatch) {
+    return res.status(404).json({
+      message: "Sdt hoặc Mật khẩu bị sai ",
+    });
+  }
+  const accessToken = jwt.sign(
+    {
+      id: user.id,
+      roleId: user.roleId,
+    },
+    process.env.ACCESS_TOKEN_KEY,
+    {
+      expiresIn: process.env.ACCESSTOKEN_ExpiresIn,
     }
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-        return res.status(404).json({
-            message: "Sdt hoặc Mật khẩu bị sai "
-        })
+  );
+  const refreshToken = jwt.sign(
+    {
+      id: user.id,
+    },
+    process.env.REFRESH_TOKEN_KEY,
+    {
+      expiresIn: process.env.REFESHTOKEN_ExpiresIn,
     }
-    const accessToken = jwt.sign(
-        {
-            id: user.id,
-            roleId: user.roleId
-        },
-        process.env.ACCESS_TOKEN_KEY,
-        {
-            expiresIn: process.env.ACCESSTOKEN_ExpiresIn,
-        }
-    );
-    const refreshToken = jwt.sign(
-        {
-            id: user.id
-        },
-        process.env.REFRESH_TOKEN_KEY,
-        {
-            expiresIn: process.env.REFESHTOKEN_ExpiresIn,
-        }
-    );
-    user.refreshToken = refreshToken;
-    await user.save();
-    return {
-        accessToken,
-        refreshToken,
-        user: {
-            id: user.id,
-            fullName: user.fullName,
-            phoneNumber: user.phoneNumber,
-            role: user.role?.roleName,
-            avatar: user.avatar
-        }
-    };
+  );
+  user.refreshToken = refreshToken;
+  await user.save();
+  return {
+    accessToken,
+    refreshToken,
+    user: {
+      id: user.id,
+      fullName: user.fullName,
+      phoneNumber: user.phoneNumber,
+      role: user.role?.roleName,
+      avatar: user.avatar,
+    },
+  };
 };
 
-module.exports.register = async (fullName, phone, password, confirmPassword) => {
-    const normalizePhone = await normalizeVnPhone(phone);
-    if (!normalizePhone) {
-        throw {
-            status: 400,
-            message: "Số điện thoại không hợp lệ, vui lòng thử lại"
-        };
+module.exports.register = async (
+  fullName,
+  phone,
+  password,
+  confirmPassword
+) => {
+  const normalizePhone = await normalizeVnPhone(phone);
+  if (!normalizePhone) {
+    throw {
+      status: 400,
+      message: "Số điện thoại không hợp lệ, vui lòng thử lại",
     };
-    if (!confirmPassword) {
-        throw {
-            status: 400,
-            message: "Mật khẩu xác nhận là bắt buộc"
-        };
+  }
+  if (!confirmPassword) {
+    throw {
+      status: 400,
+      message: "Mật khẩu xác nhận là bắt buộc",
     };
-    if (password !== confirmPassword) {
-        throw {
-            status: 400,
-            message: "Mật khẩu xác nhận không trùng khớp"
-        };
+  }
+  if (password !== confirmPassword) {
+    throw {
+      status: 400,
+      message: "Mật khẩu xác nhận không trùng khớp",
     };
-    const existingUser = await User.findOne({
-        where: { phoneNumber: normalizePhone }
-    }
-    );
-    if (existingUser && existingUser.status == "ACTIVE") {
-        throw {
-            status: 400,
-            message: "Số điện thoại đã được đăng kí"
-        };
+  }
+  const existingUser = await User.findOne({
+    where: { phoneNumber: normalizePhone },
+  });
+  if (existingUser && existingUser.status == "ACTIVE") {
+    throw {
+      status: 400,
+      message: "Số điện thoại đã được đăng kí",
     };
-    const role = await Role.findOne({ where: { roleCode: "CUSTOMER" } });
-    if (!role) {
-        throw {
-            status: 400,
-            message: "Không tìm thấy vai trò trong db"
-        };
-    }
-    const hashPassword = await bcrypt.hash(password, 10);
-    const user = await User.create({
-        fullName: fullName,
-        phoneNumber: normalizePhone,
-        password: hashPassword,
-        status: "ACTIVE",
-        roleId: role.id
-    });
-    return user;
+  }
+  const role = await Role.findOne({ where: { roleCode: "CUSTOMER" } });
+  if (!role) {
+    throw {
+      status: 400,
+      message: "Không tìm thấy vai trò trong db",
+    };
+  }
+  const hashPassword = await bcrypt.hash(password, 10);
+  const user = await User.create({
+    fullName: fullName,
+    phoneNumber: normalizePhone,
+    password: hashPassword,
+    status: "ACTIVE",
+    roleId: role.id,
+  });
+  return user;
 };
 
+module.exports.changePassword = async (
+  userId,
+  currentPassword,
+  newPassword
+) => {
+  const user = await User.findOne({
+    where: { id: userId },
+  });
+
+  if (!user) {
+    const error = new Error("User not found");
+    error.status = 404;
+    throw error;
+  }
+
+  const isMatch = await bcrypt.compare(currentPassword, user.password);
+  if (!isMatch) {
+    const error = new Error("Mật khẩu hiện tại không đúng");
+    error.status = 400;
+    throw error;
+  }
+
+  const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+  await user.update({
+    password: hashedPassword,
+  });
+
+  return {
+    id: user.id,
+    phoneNumber: user.phoneNumber,
+  };
+};
