@@ -4,7 +4,6 @@ const User = db.User;
 const Role = db.Role;
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
-const axios = require('axios');
 const { normalizeVnPhone } = require("../../util/phone.util");
 const { where } = require("sequelize");
 
