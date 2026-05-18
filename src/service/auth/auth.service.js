@@ -1,8 +1,10 @@
 const db = require("../../../models");
 /** @type {import("sequelize").ModelStatic<import("sequelize").Model>} */
 const User = db.User;
+const Role = db.Role;
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt")
+const { where } = require("sequelize");
 module.exports.login = async (phone, password) => {
     const user = await User.findOne({
         where: {
@@ -16,15 +18,17 @@ module.exports.login = async (phone, password) => {
         ]
     });
     if (!user) {
-        return res.status(404).json({
-            message: "Sdt hoặc Mật khẩu bị sai "
-        })
+        throw {
+            status: 404,
+            message: "Số điện thoại hoặc Mật khẩu bị sai"
+        };
     }
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-        return res.status(404).json({
-            message: "Sdt hoặc Mật khẩu bị sai "
-        })
+        throw {
+            status: 404,
+            message: "Số điện thoại hoặc Mật khẩu bị sai"
+        };
     }
     const accessToken = jwt.sign(
         {
@@ -33,7 +37,7 @@ module.exports.login = async (phone, password) => {
         },
         process.env.ACCESS_TOKEN_KEY,
         {
-            expiresIn: process.env.ACCESS_TOKEN_EXPIRES_IN,
+            expiresIn: process.env.ACCESSTOKEN_ExpiresIn,
         }
     );
     const refreshToken = jwt.sign(
@@ -42,7 +46,7 @@ module.exports.login = async (phone, password) => {
         },
         process.env.REFRESH_TOKEN_KEY,
         {
-            expiresIn: process.env.REFRESH_TOKEN_EXPIRES_IN,
+            expiresIn: process.env.REFESHTOKEN_ExpiresIn,
         }
     );
     user.refreshToken = refreshToken;

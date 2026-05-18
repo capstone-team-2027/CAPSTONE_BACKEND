@@ -7,7 +7,7 @@ module.exports.login = async (req, res) => {
         const validation = loginSchema.safeParse({ phone, password });
         const result = await authService.login(phone, password);
         return res.status(200).json({
-            message: "Login success",
+            message: "Đăng nhập thành công",
             data: result
         });
     } catch (error) {
