@@ -18,6 +18,7 @@ module.exports.login = async (req, res) => {
         });
     }
 };
+
 module.exports.register = async (req,res) => {
     try {
         const {fullName, phone, password, confirmPassword} = req.body;
