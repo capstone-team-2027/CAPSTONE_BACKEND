@@ -92,7 +92,7 @@ module.exports.register = async (fullName, phone, password, confirmPassword) => 
     if(existingUser && existingUser.status == "ACTIVE"){
          throw {
             status: 400,
-            message: "Số điện thoại đã được đăng kí. Vui lòng thử số điện thoại khác"
+            message: "Số điện thoại đã được đăng kí."
         };
     };
     const role = await Role.findOne({where: {roleCode: "CUSTOMER"}});
