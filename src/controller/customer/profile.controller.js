@@ -29,14 +29,21 @@ module.exports.updateProfile = async (req, res) => {
 
         const { fullName, avatar } = req.body;
 
-        const payloadToValidate = { fullName, avatar };
-        if (typeof avatar === "string") {
+        const payloadToValidate = {};
+        if (typeof fullName === "string" && fullName.trim().length > 0) {
+            payloadToValidate.fullName = fullName;
+        }
+        if (typeof avatar === "string" && avatar.trim().length > 0) {
             payloadToValidate.avatar = avatar;
         }
 
         const validation = updateProfileSchema.safeParse(payloadToValidate);
         if (!validation.success) {
             return res.status(400).json({ message: validation.error.issues[0].message });
+        }
+
+        if (!validation.data.fullName && !validation.data.avatar && !req.file) {
+            return res.status(400).json({ message: "Vui lòng cung cấp tên hoặc avatar" });
         }
 
         let avatarData = validation.data.avatar ?? null;
@@ -64,10 +71,9 @@ module.exports.updateProfile = async (req, res) => {
             }
         }
 
-        const payload = {
-            ...validation.data,
-            avatar: avatarData,
-        };
+        const payload = {};
+        if (validation.data.fullName) payload.fullName = validation.data.fullName;
+        if (avatarData) payload.avatar = avatarData;
 
         const result = await profileService.updateProfile(requestUser.id, payload);
 
