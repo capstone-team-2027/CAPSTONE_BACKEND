@@ -1,4 +1,5 @@
-const { loginSchema, registerSchema } = require("../../validation/auth/auth.validation")
+
+const { loginSchema, registerSchema } = require("./../../validation/auth.validation")
 const authService = require("./../../service/auth/auth.service");
 const { da } = require("zod/v4/locales");
 
@@ -17,15 +18,11 @@ module.exports.login = async (req, res) => {
         });
     }
 };
-module.exports.register = async (req, res) => {
+
+module.exports.register = async (req,res) => {
     try {
-        const { fullName, phone, password, confirmPassword } = req.body;
-        const validation = registerSchema.safeParse({ fullName, phone, password });
-        if (!validation.success) {
-            return res.status(400).json({
-                message: validation.error.issues[0].message
-            });
-        }
+        const {fullName, phone, password, confirmPassword} = req.body;
+        const validation = registerSchema.safeParse({fullName, phone, password});
         const result = await authService.register(fullName, phone, password, confirmPassword)
         return res.status(200).json({
             message: "Đăng kí thành công",
