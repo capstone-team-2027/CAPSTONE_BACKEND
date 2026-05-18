@@ -21,15 +21,17 @@ module.exports.login = async (phone, password) => {
         ]
     });
     if (!user) {
-        return res.status(404).json({
-            message: "Sdt hoặc Mật khẩu bị sai "
-        })
+        throw {
+            status: 404,
+            message: "Số điện thoại hoặc Mật khẩu bị sai"
+        };
     }
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-        return res.status(404).json({
-            message: "Sdt hoặc Mật khẩu bị sai "
-        })
+        throw {
+            status: 404,
+            message: "Số điện thoại hoặc Mật khẩu bị sai"
+        };
     }
     const accessToken = jwt.sign(
         {
