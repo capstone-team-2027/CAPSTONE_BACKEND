@@ -1,5 +1,5 @@
 
-const { loginSchema, registerSchema } = require("./../../validation/auth.validation")
+const { loginSchema, registerSchema } = require("./../../validation/auth/auth.validation")
 const authService = require("./../../service/auth/auth.service");
 const { da } = require("zod/v4/locales");
 
@@ -20,10 +20,10 @@ module.exports.login = async (req, res) => {
 };
 
 
-module.exports.register = async (req,res) => {
+module.exports.register = async (req, res) => {
     try {
-        const {fullName, phone, password, confirmPassword} = req.body;
-        const validation = registerSchema.safeParse({fullName, phone, password});
+        const { fullName, phone, password, confirmPassword } = req.body;
+        const validation = registerSchema.safeParse({ fullName, phone, password });
         const result = await authService.register(fullName, phone, password, confirmPassword)
         return res.status(200).json({
             message: "Đăng kí thành công",
@@ -35,4 +35,25 @@ module.exports.register = async (req,res) => {
         });
     }
 };
+module.exports.refreshToken = async (req, res) => {
+    const refreshToken = req.body.refreshToken; // Đã đổi tên chuẩn camelCase
 
+    try {
+        const result = await authService.processRefreshToken(refreshToken);
+        return res.status(200).json({
+            state: 200,
+            message: "Success",
+            accessToken: result.accessToken,
+            refreshToken: result.refreshToken,
+        });
+
+    } catch (error) {
+        // Nếu Service ném ra lỗi (bắt bằng try-catch)
+        console.error("Lỗi tại api refresh-token:", error.message);
+
+        return res.status(401).json({
+            state: 401,
+            message: "Unauthorized", // Fix chính tả "Unauthorization" -> "Unauthorized"
+        });
+    }
+}

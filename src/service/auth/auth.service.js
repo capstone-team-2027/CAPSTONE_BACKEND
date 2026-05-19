@@ -113,4 +113,28 @@ module.exports.register = async (fullName, phone, password, confirmPassword) => 
     });
     return user;
 };
-
+module.exports.processRefreshToken = async (refreshToken) => {
+    if (!refreshToken) {
+        throw new Error("NO_TOKEN");
+    }
+    try {
+        jwt.verify(refreshToken, process.env.REFRESH_TOKEN_KEY);
+        const currentUser = await User.findOne({ where: { refreshToken: refreshToken } });
+        if (!currentUser) {
+            throw new Error("USER_NOT_EXIST");
+        }
+        const accessToken = jwt.sign(
+            { userId: currentUser.id },
+            process.env.ACCESS_TOKEN_KEY,
+            {
+                expiresIn: process.env.ACCESSTOKEN_ExpiresIn || '1h',
+            }
+        );
+        return {
+            accessToken: accessToken,
+            refreshToken: refreshToken
+        };
+    } catch (error) {
+        throw new Error("INVALID_TOKEN");
+    }
+}
