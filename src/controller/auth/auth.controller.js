@@ -1,11 +1,5 @@
-const {
-  loginSchema,
-  registerSchema,
-} = require("./../../validation/auth/auth.validation");
-const {
-  changePasswordSchema,
-} = require("../../validation/auth/change-password-validation");
-
+const {changePasswordSchema,} = require("../../validation/auth/change-password-validation");
+const {loginSchema,registerSchema,checkPhoneSchema,} = require("./../../validation/auth/auth.validation");
 const authService = require("./../../service/auth/auth.service");
 const { da } = require("zod/v4/locales");
 
@@ -33,7 +27,48 @@ module.exports.register = async (req, res) => {
       fullName,
       phone,
       password,
-      confirmPassword
+      confirmPassword,
+    );
+    return res.status(200).json({
+      message: "Đăng kí thành công",
+      data: result,
+    });
+  } catch (error) {
+    return res.status(error.status || 500).json({
+      message: error.message || "Internal server error",
+    });
+  }
+};
+
+module.exports.checkPhone = async (req, res) => {
+  try {
+    const { phone } = req.body;
+    const validation = checkPhoneSchema.safeParse({ phone });
+    await authService.checkPhone(phone);
+    return res.status(200).json({
+      message: "",
+    });
+  } catch (error) {
+    return res.status(error.status || 500).json({
+      message: error.message || "Internal server error",
+    });
+  }
+};
+
+module.exports.register = async (req, res) => {
+  try {
+    const { idToken, fullName, password, confirmPassword } = req.body;
+    const validation = registerSchema.safeParse({ fullName, password });
+    if (!validation.success) {
+      return res.status(400).json({
+        message: validation.error.issues[0].message,
+      });
+    }
+    const result = await authService.register(
+      idToken,
+      fullName,
+      password,
+      confirmPassword,
     );
     return res.status(200).json({
       message: "Đăng kí thành công",
@@ -73,27 +108,22 @@ module.exports.changePassword = async (req, res) => {
     if (!requestUser) {
       return res.status(401).json({ message: "Unauthorized" });
     }
-
     const { currentPassword, newPassword, confirmNewPassword } = req.body;
-
     const validation = changePasswordSchema.safeParse({
       currentPassword,
       newPassword,
       confirmNewPassword,
     });
-
     if (!validation.success) {
       return res
         .status(400)
         .json({ message: validation.error.issues[0].message });
     }
-
     const result = await authService.changePassword(
       requestUser.id,
       validation.data.currentPassword,
-      validation.data.newPassword
+      validation.data.newPassword,
     );
-
     return res.status(200).json({
       message: result.message,
     });
