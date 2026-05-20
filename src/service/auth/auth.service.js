@@ -4,7 +4,6 @@ const User = db.User;
 const Role = db.Role;
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
-const axios = require("axios");
 const { normalizeVnPhone } = require("../../util/phone.util");
 const { where } = require("sequelize");
 
@@ -21,15 +20,17 @@ module.exports.login = async (phone, password) => {
     ],
   });
   if (!user) {
-    return res.status(404).json({
-      message: "Sdt hoặc Mật khẩu bị sai ",
-    });
+    throw {
+      status: 404,
+      message: "Số điện thoại hoặc Mật khẩu bị sai",
+    };
   }
   const isMatch = await bcrypt.compare(password, user.password);
   if (!isMatch) {
-    return res.status(404).json({
-      message: "Sdt hoặc Mật khẩu bị sai ",
-    });
+    throw {
+      status: 404,
+      message: "Số điện thoại hoặc Mật khẩu bị sai",
+    };
   }
   const accessToken = jwt.sign(
     {
@@ -96,7 +97,7 @@ module.exports.register = async (
   if (existingUser && existingUser.status == "ACTIVE") {
     throw {
       status: 400,
-      message: "Số điện thoại đã được đăng kí",
+      message: "Số điện thoại đã được đăng kí.",
     };
   }
   const role = await Role.findOne({ where: { roleCode: "CUSTOMER" } });
@@ -116,37 +117,58 @@ module.exports.register = async (
   });
   return user;
 };
+module.exports.processRefreshToken = async (refreshToken) => {
+  if (!refreshToken) {
+    throw new Error("NO_TOKEN");
+  }
+  try {
+    jwt.verify(refreshToken, process.env.REFRESH_TOKEN_KEY);
+    const currentUser = await User.findOne({
+      where: { refreshToken: refreshToken },
+    });
+    if (!currentUser) {
+      throw new Error("USER_NOT_EXIST");
+    }
+    const accessToken = jwt.sign(
+      { userId: currentUser.id },
+      process.env.ACCESS_TOKEN_KEY,
+      {
+        expiresIn: process.env.ACCESSTOKEN_ExpiresIn || "1h",
+      }
+    );
+    return {
+      accessToken: accessToken,
+      refreshToken: refreshToken,
+    };
+  } catch (error) {
+    throw new Error("INVALID_TOKEN");
+  }
+};
 
 module.exports.changePassword = async (
   userId,
   currentPassword,
   newPassword
 ) => {
-  const user = await User.findOne({
-    where: { id: userId },
-  });
+  if (!userId) {
+    throw { status: 401, message: "Unauthorized" };
+  }
 
+  const user = await User.findOne({ where: { id: userId } });
   if (!user) {
-    const error = new Error("User not found");
-    error.status = 404;
-    throw error;
+    throw { status: 404, message: "User not found" };
   }
 
   const isMatch = await bcrypt.compare(currentPassword, user.password);
   if (!isMatch) {
-    const error = new Error("Mật khẩu hiện tại không đúng");
-    error.status = 400;
-    throw error;
+    throw { status: 400, message: "Mật khẩu hiện tại không đúng" };
   }
 
   const hashedPassword = await bcrypt.hash(newPassword, 10);
 
-  await user.update({
-    password: hashedPassword,
-  });
+  user.password = hashedPassword;
+  user.refreshToken = null;
+  await user.save();
 
-  return {
-    id: user.id,
-    phoneNumber: user.phoneNumber,
-  };
+  return { message: "Đổi mật khẩu thành công" };
 };
