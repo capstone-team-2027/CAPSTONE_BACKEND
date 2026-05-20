@@ -49,6 +49,7 @@ module.exports.register = async (req, res) => {
   }
 };
 
+//Change password
 module.exports.changePassword = async (req, res) => {
   try {
     const user = res.locals.user;
