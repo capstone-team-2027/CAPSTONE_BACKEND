@@ -6,6 +6,7 @@ const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const { normalizeVnPhone } = require("../../util/phone.util");
 const { where } = require("sequelize");
+const admin = require("../../config/firebase.config");
 
 module.exports.login = async (phone, password) => {
   const user = await User.findOne({
@@ -41,7 +42,7 @@ module.exports.login = async (phone, password) => {
     process.env.ACCESS_TOKEN_KEY,
     {
       expiresIn: process.env.ACCESSTOKEN_ExpiresIn,
-    }
+    },
   );
   const refreshToken = jwt.sign(
     {
@@ -50,7 +51,7 @@ module.exports.login = async (phone, password) => {
     process.env.REFRESH_TOKEN_KEY,
     {
       expiresIn: process.env.REFESHTOKEN_ExpiresIn,
-    }
+    },
   );
   user.refreshToken = refreshToken;
   await user.save();
@@ -67,12 +68,7 @@ module.exports.login = async (phone, password) => {
   };
 };
 
-module.exports.register = async (
-  fullName,
-  phone,
-  password,
-  confirmPassword
-) => {
+module.exports.checkPhone = async (phone) => {
   const normalizePhone = await normalizeVnPhone(phone);
   if (!normalizePhone) {
     throw {
@@ -80,10 +76,46 @@ module.exports.register = async (
       message: "Số điện thoại không hợp lệ, vui lòng thử lại",
     };
   }
-  if (!confirmPassword) {
+  const user = await User.findOne({
+    where: { phoneNumber: normalizePhone },
+  });
+  if (user && user.status == "ACTIVE") {
     throw {
       status: 400,
-      message: "Mật khẩu xác nhận là bắt buộc",
+      message: "Người dùng đã tồn tại, vui lòng đăng nhập",
+    };
+  }
+};
+
+module.exports.register = async (
+  idToken,
+  fullName,
+  password,
+  confirmPassword,
+) => {
+  let decoded;
+  try {
+    decoded = await admin.auth().verifyIdToken(idToken);
+    console.log("token: ", decoded);
+  } catch (error) {
+    console.log("VERIFY ERROR:", error);
+    throw {
+      status: 401,
+      message: "OTP không hợp lệ hoặc đã hết hạn",
+    };
+  }
+  const firebasePhoneNumber = decoded.phone_number;
+  if (!firebasePhoneNumber) {
+    throw {
+      status: 400,
+      message: "Token không chứa số điện thoại",
+    };
+  }
+  const normalizePhone = await normalizeVnPhone(firebasePhoneNumber);
+  if (!normalizePhone) {
+    throw {
+      status: 400,
+      message: "Số điện thoại không hợp lệ, vui lòng thử lại",
     };
   }
   if (password !== confirmPassword) {
@@ -92,6 +124,7 @@ module.exports.register = async (
       message: "Mật khẩu xác nhận không trùng khớp",
     };
   }
+
   const existingUser = await User.findOne({
     where: { phoneNumber: normalizePhone },
   });
@@ -118,6 +151,7 @@ module.exports.register = async (
   });
   return user;
 };
+
 module.exports.processRefreshToken = async (refreshToken) => {
   if (!refreshToken) {
     throw new Error("NO_TOKEN");
@@ -135,7 +169,7 @@ module.exports.processRefreshToken = async (refreshToken) => {
       process.env.ACCESS_TOKEN_KEY,
       {
         expiresIn: process.env.ACCESSTOKEN_ExpiresIn || "1h",
-      }
+      },
     );
     return {
       accessToken: accessToken,
@@ -149,7 +183,7 @@ module.exports.processRefreshToken = async (refreshToken) => {
 module.exports.changePassword = async (
   userId,
   currentPassword,
-  newPassword
+  newPassword,
 ) => {
   if (!userId) {
     throw { status: 401, message: "Unauthorized" };

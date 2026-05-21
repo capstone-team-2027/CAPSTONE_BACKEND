@@ -1,3 +1,4 @@
+const { changePasswordSchema, } = require("../../validation/auth/change-password-validation");
 const profileService = require("../../service/customer/profile.service");
 const { updateProfileSchema } = require("../../validation/customer/profile.validation");
 const db = require("../../../models");
@@ -80,5 +81,36 @@ module.exports.updateProfile = async (req, res) => {
         return res.status(200).json({ message: "Cập nhật thông tin thành công", data: result });
     } catch (error) {
         return res.status(error.status || 500).json({ message: error.message || "Internal server error" });
+    }
+};
+module.exports.changePassword = async (req, res) => {
+    try {
+        const requestUser = res.locals.user;
+        if (!requestUser) {
+            return res.status(401).json({ message: "Unauthorized" });
+        }
+        const { currentPassword, newPassword, confirmNewPassword } = req.body;
+        const validation = changePasswordSchema.safeParse({
+            currentPassword,
+            newPassword,
+            confirmNewPassword,
+        });
+        if (!validation.success) {
+            return res
+                .status(400)
+                .json({ message: validation.error.issues[0].message });
+        }
+        const result = await profileService.changePassword(
+            requestUser.id,
+            validation.data.currentPassword,
+            validation.data.newPassword,
+        );
+        return res.status(200).json({
+            message: result.message,
+        });
+    } catch (error) {
+        return res.status(error.status || 500).json({
+            message: error.message || "Internal server error",
+        });
     }
 };
