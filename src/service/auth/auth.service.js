@@ -19,6 +19,7 @@ module.exports.login = async (phone, password) => {
       },
     ],
   });
+  console.log("user là : ", user)
   if (!user) {
     throw {
       status: 404,
@@ -60,7 +61,7 @@ module.exports.login = async (phone, password) => {
       id: user.id,
       fullName: user.fullName,
       phoneNumber: user.phoneNumber,
-      role: user.role?.roleName,
+      role: user.role?.roleCode,
       avatar: user.avatar,
     },
   };
