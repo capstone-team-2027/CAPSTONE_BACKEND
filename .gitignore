@@ -1,3 +1,5 @@
 node_modules/
 .env
 uploads/
+firebase-account.json
+config/config.json
