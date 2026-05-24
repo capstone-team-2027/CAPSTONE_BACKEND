@@ -20,7 +20,6 @@ module.exports.login = async (phone, password) => {
       },
     ],
   });
-  console.log("user là : ", user)
   if (!user) {
     throw {
       status: 404,
@@ -180,30 +179,4 @@ module.exports.processRefreshToken = async (refreshToken) => {
   }
 };
 
-module.exports.changePassword = async (
-  userId,
-  currentPassword,
-  newPassword,
-) => {
-  if (!userId) {
-    throw { status: 401, message: "Unauthorized" };
-  }
 
-  const user = await User.findOne({ where: { id: userId } });
-  if (!user) {
-    throw { status: 404, message: "User not found" };
-  }
-
-  const isMatch = await bcrypt.compare(currentPassword, user.password);
-  if (!isMatch) {
-    throw { status: 400, message: "Mật khẩu hiện tại không đúng" };
-  }
-
-  const hashedPassword = await bcrypt.hash(newPassword, 10);
-
-  user.password = hashedPassword;
-  user.refreshToken = null;
-  await user.save();
-
-  return { message: "Đổi mật khẩu thành công" };
-};

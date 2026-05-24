@@ -1,5 +1,4 @@
-const {changePasswordSchema,} = require("../../validation/auth/change-password-validation");
-const {loginSchema,registerSchema,checkPhoneSchema,} = require("./../../validation/auth/auth.validation");
+const { loginSchema, registerSchema, checkPhoneSchema, } = require("./../../validation/auth/auth.validation");
 const authService = require("./../../service/auth/auth.service");
 const { da } = require("zod/v4/locales");
 
