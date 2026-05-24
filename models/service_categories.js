@@ -10,32 +10,23 @@ module.exports = (sequelize, DataTypes) => {
      * The `models/index` file will call this method automatically.
      */
     static associate(models) {
-      // define association here
+      if (models.Service_Catalog) {
+        this.hasMany(models.Service_Catalog, {
+          foreignKey: 'category_id',
+          as: 'services'
+        });
+      }
     }
   }
   Service_Categories.init({
     category_name: {
       type: DataTypes.STRING(100),
-      allowNull: false // Không được để trống tên danh mục dịch vụ
-    },
-    description: {
-      type: DataTypes.TEXT,
-      allowNull: true
-    },
-    estimated_duration: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-      defaultValue: 0 // Mặc định là 0 phút
-    },
-    base_price: {
-      type: DataTypes.DECIMAL(12, 2), // Hỗ trợ lưu giá dịch vụ lớn chính xác từng đồng xu
-      allowNull: false,
-      defaultValue: 0.00
+      allowNull: false // Tên nhóm dịch vụ bắt buộc phải nhập
     },
     is_active: {
       type: DataTypes.BOOLEAN,
       allowNull: false,
-      defaultValue: true // Mặc định dịch vụ được kích hoạt sẵn
+      defaultValue: true // Mặc định tạo xong nhóm này sẽ ở trạng thái bật/sẵn sàng
     }
   }, {
     sequelize,

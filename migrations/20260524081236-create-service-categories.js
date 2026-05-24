@@ -7,40 +7,26 @@ module.exports = {
         allowNull: false,
         autoIncrement: true,
         primaryKey: true,
-        type: Sequelize.INTEGER
+        type: Sequelize.INTEGER // Tương đương với SERIAL [PK] trong PostgreSQL
       },
       category_name: {
         type: Sequelize.STRING(100),
-        allowNull: false // FIX: Tên nhóm dịch vụ bắt buộc phải nhập
-      },
-      description: {
-        type: Sequelize.TEXT,
-        allowNull: true
-      },
-      estimated_duration: {
-        type: Sequelize.INTEGER,
-        allowNull: false,
-        defaultValue: 0 // FIX: Mặc định là 0 phút nếu chưa ước lượng được thời gian
-      },
-      base_price: {
-        type: Sequelize.DECIMAL(12, 2), // FIX: Định dạng (12, 2) giúp lưu giá tiền dịch vụ chính xác
-        allowNull: false,
-        defaultValue: 0.00
+        allowNull: false // Tên nhóm dịch vụ bắt buộc phải nhập (Vd: Bảo dưỡng nhanh, Sửa chữa Máy-Gầm...)
       },
       is_active: {
         type: Sequelize.BOOLEAN,
         allowNull: false,
-        defaultValue: true // FIX: Mặc định tạo xong là dịch vụ ở trạng thái sẵn sàng cung cấp
+        defaultValue: true // Mặc định tạo xong danh mục sẽ ở trạng thái kích hoạt ngay
       },
       createdAt: {
         allowNull: false,
         type: Sequelize.DATE,
-        defaultValue: Sequelize.NOW
+        defaultValue: Sequelize.NOW // Fix lỗi viết hoa/thường chuẩn Postgres
       },
       updatedAt: {
         allowNull: false,
         type: Sequelize.DATE,
-        defaultValue: Sequelize.Now
+        defaultValue: Sequelize.NOW
       }
     });
   },
