@@ -10,6 +10,32 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: 'roleId',
         as: 'role'
       });
+      if (models.Customers) {
+        User.hasOne(models.Customers, {
+          foreignKey: 'user_id',
+          as: 'customerProfile'
+        });
+      }
+      if (models.Tool_History) {
+        User.hasMany(models.Tool_History, {
+          foreignKey: 'technician_id',
+          as: 'operatedTools'
+        });
+      }
+      if (models.Inventory_Logs) {
+        User.hasMany(models.Inventory_Logs, {
+          foreignKey: 'manager_id',
+          as: 'inventoryLogs'
+        });
+      }
+      if (models.Service_Orders) {
+        User.hasMany(models.Service_Orders, {
+          foreignKey: 'receptionist_id',
+          as: 'receptionistOrders'
+        });
+      }
+
+
       // 1-n : hasMany
     }
   }
@@ -55,9 +81,9 @@ module.exports = (sequelize, DataTypes) => {
     },
     status: {
       type: DataTypes.STRING(50),
-      defaultValue: 'PENDING', 
+      defaultValue: 'PENDING',
       validate: {
-        isIn: [['PENDING','ACTIVE', 'INACTIVE', 'BANNED']]
+        isIn: [['PENDING', 'ACTIVE', 'INACTIVE', 'BANNED']]
       }
     },
     hasDrivingLicense: {
