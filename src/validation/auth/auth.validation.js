@@ -1,5 +1,4 @@
 const { z } = require("zod");
-const { register } = require("../../service/auth/auth.service");
 
 const loginSchema = z.object({
   phone: z

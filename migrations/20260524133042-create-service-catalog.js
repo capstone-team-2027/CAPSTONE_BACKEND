@@ -28,6 +28,11 @@ module.exports = {
         allowNull: false, // Bắt buộc nhập thời gian tiêu chuẩn (tính bằng Phút) để hệ thống tự động xếp lịch cầu nâng
         defaultValue: 30  // Mặc định ban đầu nếu không nhập là 30 phút
       },
+       is_active: {
+      type: Sequelize.BOOLEAN,
+      allowNull: false,
+      defaultValue: true
+     },
       createdAt: {
         allowNull: false,
         type: Sequelize.DATE,
