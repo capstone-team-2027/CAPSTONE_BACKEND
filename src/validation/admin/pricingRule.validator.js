@@ -16,8 +16,9 @@ const createPricingRuleSchema = z.object({
         .min(0, 'Tỉ lệ giảm giá phải >= 0')
         .max(100, 'Tỉ lệ giảm giá phải <= 100 (100 = miễn phí)')
         .default(0),
-    start_date: z.coerce.date({ invalid_type_error: 'Ngày bắt đầu không hợp lệ' }).optional(),
-    end_date: z.coerce.date({ invalid_type_error: 'Ngày kết thúc không hợp lệ' }).optional(),
+    start_date: z.coerce.date({ invalid_type_error: 'Ngày bắt đầu không hợp lệ' }).nullable().optional(),
+    end_date: z.coerce.date({ invalid_type_error: 'Ngày kết thúc không hợp lệ' }).nullable().optional(),
+    is_active: z.boolean().optional(),
 }).refine(
     (data) => {
         if (data.start_date && data.end_date) return data.start_date < data.end_date;
@@ -34,15 +35,16 @@ const updatePricingRuleSchema = z.object({
     markup_rate: z
         .number({ invalid_type_error: 'Tỉ lệ tăng giá phải là số' })
         .min(0, 'Tỉ lệ tăng giá phải >= 0')
-        .max(10, 'Tỉ lệ tăng giá phải <= 10')
+        .max(1000, 'Tỉ lệ tăng giá phải <= 1000')
         .optional(),
     discount_rate: z
         .number({ invalid_type_error: 'Tỉ lệ giảm giá phải là số' })
         .min(0, 'Tỉ lệ giảm giá phải >= 0')
-        .max(100, 'Tỉ lệ giảm giá phải <= 1 (1.0 = miễn phí)')
+        .max(100, 'Tỉ lệ giảm giá phải <= 100 (100 = miễn phí)')
         .optional(),
-    start_date: z.coerce.date({ invalid_type_error: 'Ngày bắt đầu không hợp lệ' }).optional(),
-    end_date: z.coerce.date({ invalid_type_error: 'Ngày kết thúc không hợp lệ' }).optional(),
+    start_date: z.coerce.date({ invalid_type_error: 'Ngày bắt đầu không hợp lệ' }).nullable().optional(),
+    end_date: z.coerce.date({ invalid_type_error: 'Ngày kết thúc không hợp lệ' }).nullable().optional(),
+    is_active: z.boolean().optional(),
 }).refine(
     (data) => {
         if (data.start_date && data.end_date) return data.start_date < data.end_date;

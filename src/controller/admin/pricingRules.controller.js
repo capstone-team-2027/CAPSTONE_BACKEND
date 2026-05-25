@@ -6,14 +6,15 @@ module.exports.createPricingrules = async (req, res) => {
     try {
         const parsed = createPricingRuleSchema.safeParse(req.body);
         if (!parsed.success) {
-            return res.status(400).json({
+            res.status(400).json({
                 success: false,
-                message: 'Validation failed',
-                errors: parsed.error.errors.map((e) => ({
-                    field: e.path.join('.'),
+                message: 'Dữ liệu không hợp lệ',
+                errors: parsed.error.issues.map((e) => ({
+                    field: e.path.join('.') || 'general',
                     message: e.message,
                 })),
             });
+            return null;
         }
         const { category, markup_rate, discount_rate, start_date, end_date } = parsed.data;
         const pricingRule = await Pricing_Rule.create({
@@ -41,7 +42,7 @@ module.exports.createPricingrules = async (req, res) => {
 module.exports.getAllPricingRules = async (req, res) => {
     try {
         const rules = await Pricing_Rule.findAll({
-            where: { is_active: true },
+            where: { is_deleted: false },
             order: [['id', 'DESC']],
         });
 
@@ -107,7 +108,7 @@ module.exports.updatePricingRule = async (req, res) => {
         }
 
         const rule = await Pricing_Rule.findOne({
-            where: { id, is_active: true },
+            where: { id, is_deleted: false },
         });
 
         if (!rule) {
@@ -138,7 +139,7 @@ module.exports.deletePricingRule = async (req, res) => {
         const { id } = req.params;
 
         const rule = await Pricing_Rule.findOne({
-            where: { id, is_active: true },
+            where: { id, is_deleted: false },
         });
 
         if (!rule) {
@@ -148,7 +149,7 @@ module.exports.deletePricingRule = async (req, res) => {
             });
         }
 
-        await rule.update({ is_active: false });
+        await rule.update({ is_deleted: true });
 
         return res.status(200).json({
             success: true,

@@ -8,7 +8,7 @@ app.use(bodyParser.json());
 var cors = require("cors");
 const ROUTES = require("./src/router/registry.routes");
 const whitelist = ["http://localhost:3000", "http://localhost:5173"];
-
+require("./src/jobs/pricingRule.job");
 app.use(
     cors({
         origin(origin, callback) {
