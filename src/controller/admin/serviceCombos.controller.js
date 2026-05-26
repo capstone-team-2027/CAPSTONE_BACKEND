@@ -1,67 +1,85 @@
 const svc = require("../../service/admin/serviceCombos.service");
-
-async function list(req, res) {
+const { createComboSchema, updateComboSchema, viewCombosQuerySchema } = require("./../../validation/admin/serviceCombos.validation")
+module.exports.listServiceCombos = async (req, res) => {
   try {
-    const page = Number(req.query.page) || 1;
-    const limit = Number(req.query.limit) || 50;
-    const include_services =
-      req.query.include_services === "true" ||
-      req.query.include_services === "1";
+    // ── Validate ───────────────────────────────────────────────────────────
+    const result = viewCombosQuerySchema.safeParse(req.query);
+    if (!result.success) {
+      const errors = result.error.errors.map((e) => ({
+        field: e.path.join("."),
+        message: e.message,
+      }));
+      return res.status(400).json({ success: false, errors });
+    }
+
+    const { page, limit, include_services } = result.data;
+
     const data = await svc.listCombos({ page, limit, include_services });
     return res.json({ success: true, data });
   } catch (err) {
     console.error("SERVICECOMBOS LIST ERROR:", err);
     return res.status(500).json({ success: false, message: err.message });
   }
-}
+};
 
-async function create(req, res) {
+module.exports.createServiceCombos = async (req, res) => {
   try {
-    const { category_name, is_active, service_ids, new_services } = req.body;
-    if (!category_name)
-      return res
-        .status(400)
-        .json({ success: false, message: "category_name required" });
+    const result = createComboSchema.safeParse(req.body);
+    if (!result.success) {
+      const errors = result.error.errors.map((e) => ({
+        field: e.path.join("."),
+        message: e.message,
+      }));
+      return res.status(400).json({ success: false, errors });
+    }
+
+    const { category_name, is_active } = result.data;
+
     const created = await svc.createCombo({
       category_name,
       is_active,
-      service_ids,
-      new_services,
     });
+
     return res.status(201).json({ success: true, data: created });
   } catch (err) {
     console.error("SERVICECOMBOS CREATE ERROR:", err);
     return res.status(500).json({ success: false, message: err.message });
   }
-}
+};
 
-async function update(req, res) {
+module.exports.updateServiceCombos = async (req, res) => {
   try {
+    // ── Validate id ────────────────────────────────────────────────────────
     const id = Number(req.params.id);
-    if (!id)
+    if (!Number.isInteger(id) || id <= 0)
       return res.status(400).json({ success: false, message: "invalid id" });
-    const {
-      category_name,
-      is_active,
-      service_ids,
-      new_services,
-      remove_service_ids,
-    } = req.body;
+
+    // ── Validate body ──────────────────────────────────────────────────────
+    const result = updateComboSchema.safeParse(req.body);
+    if (!result.success) {
+      const errors = result.error.errors.map((e) => ({
+        field: e.path.join("."),
+        message: e.message,
+      }));
+      return res.status(400).json({ success: false, errors });
+    }
+
+    const { category_name, is_active } = result.data;
+    // ❌ Bỏ service_ids, new_services, remove_service_ids — không có trong model
+
     const updated = await svc.updateCombo(id, {
       category_name,
       is_active,
-      service_ids,
-      new_services,
-      remove_service_ids,
     });
+
     return res.json({ success: true, data: updated });
   } catch (err) {
     console.error("SERVICECOMBOS UPDATE ERROR:", err);
     return res.status(500).json({ success: false, message: err.message });
   }
-}
+};
 
-async function remove(req, res) {
+module.exports.removeServiceCombos = async (req, res) => {
   try {
     const id = Number(req.params.id);
     if (!id)
@@ -76,4 +94,4 @@ async function remove(req, res) {
   }
 }
 
-module.exports = { list, create, update, remove };
+
