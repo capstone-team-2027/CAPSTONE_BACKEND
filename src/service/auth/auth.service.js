@@ -179,4 +179,45 @@ module.exports.processRefreshToken = async (refreshToken) => {
   }
 };
 
+module.exports.forgotPassword = async (
+  phone,
+  password,
+  confirmPassword
+) => {
+  const normalizePhone = await normalizeVnPhone(phone);
+  if (!normalizePhone) {
+    throw {
+      status: 400,
+      message: "Số điện thoại không hợp lệ, vui lòng thử lại",
+    };
+  }
+
+  if (password !== confirmPassword) {
+    throw {
+      status: 400,
+      message: "Mật khẩu xác nhận không trùng khớp",
+    };
+  }
+
+  const user = await User.findOne({
+    where: { phoneNumber: normalizePhone },
+  });
+
+  if (!user) {
+    throw {
+      status: 404,
+      message: "Không tìm thấy tài khoản liên kết với số điện thoại này",
+    };
+  }
+
+  const hashPassword = await bcrypt.hash(password, 10);
+  user.password = hashPassword;
+  user.refreshToken = null;
+  await user.save();
+
+  return {
+    message: "Đặt lại mật khẩu thành công",
+  };
+};
+
 

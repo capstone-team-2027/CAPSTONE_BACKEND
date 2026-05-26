@@ -1,4 +1,4 @@
-const { loginSchema, registerSchema, checkPhoneSchema, } = require("./../../validation/auth/auth.validation");
+const { loginSchema, registerSchema, checkPhoneSchema, forgotPasswordSchema } = require("./../../validation/auth/auth.validation");
 const authService = require("./../../service/auth/auth.service");
 const { da } = require("zod/v4/locales");
 
@@ -125,6 +125,28 @@ module.exports.changePassword = async (req, res) => {
     );
     return res.status(200).json({
       message: result.message,
+    });
+  } catch (error) {
+    return res.status(error.status || 500).json({
+      message: error.message || "Internal server error",
+    });
+  }
+};
+
+module.exports.forgotPassword = async (req, res) => {
+  try {
+    const { phone, password, confirmPassword } = req.body;
+    const validation = forgotPasswordSchema.safeParse({ password });
+    if (!validation.success) {
+      return res.status(400).json({
+        message: validation.error.issues[0].message,
+      });
+    }
+
+    const result = await authService.forgotPassword(phone, password, confirmPassword);
+    return res.status(200).json({
+      message: "Đặt lại mật khẩu thành công",
+      data: result,
     });
   } catch (error) {
     return res.status(error.status || 500).json({
