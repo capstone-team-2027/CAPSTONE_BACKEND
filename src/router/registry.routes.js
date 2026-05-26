@@ -21,11 +21,10 @@ module.exports = [
   },
   {
     prefix: "/api/customer",
-    middlewares:
-      [
-        checkClient.authenticate,
-        checkClient.authorizeRoles(ROLES.CUSTOMER),
-      ],
+    middlewares: [
+      checkClient.authenticate,
+      checkClient.authorizeRoles(ROLES.CUSTOMER),
+    ],
     router: customerRoutes,
   },
   {
