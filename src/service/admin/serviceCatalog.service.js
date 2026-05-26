@@ -32,7 +32,7 @@ module.exports.createServiceCatalog = async (category_id, service_name, estimate
 
 module.exports.getServiceCatalog = async () =>{
     const serviceCatalog = await Service_Catalog.findAll({
-        attributes: ['id','category_id','service_name','estimated_duration'],
+        attributes: ['id','category_id','service_name','estimated_duration','is_active'],
         include: [
             {
                 model: Service_Categories,
