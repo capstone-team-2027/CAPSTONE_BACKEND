@@ -26,4 +26,9 @@ router.get("/serviceCombos", controller.listServiceCombos);
 router.post("/serviceCombos", controller.createServiceCombos);
 router.put("/serviceCombos/:id", controller.updateServiceCombos);
 router.delete("/serviceCombos/:id", controller.removeServiceCombos);
+
+router.get("/serviceBays", controllerServiceBays.listServiceBays);
+router.post("/serviceBay", controllerServiceBays.createServiceBay);
+router.put("/serviceBay/:id", controllerServiceBays.updateServiceBay);
+router.delete("/serviceBay/:id", controllerServiceBays.removeServiceBay);
 module.exports = router;
