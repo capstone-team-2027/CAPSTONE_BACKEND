@@ -16,9 +16,9 @@ module.exports.getServiceCategories = async (req,res) => {
 
 module.exports.createServiceCatalog = async (req,res) => {
     try {
-        const {category_id, service_name, estimated_duration,is_active} = req.body;
+        const {category_id, service_name, description, estimated_duration,is_active} = req.body;
         const validation = createServiceCatalogSchema.safeParse({service_name});
-        const result = await serviceCatalog.createServiceCatalog(category_id, service_name,estimated_duration,is_active);
+        const result = await serviceCatalog.createServiceCatalog(category_id, service_name, description, estimated_duration, is_active);
         return res.status(201).json({
             message: "Tạo mới dịch vụ thành công",
             data: result,
@@ -45,9 +45,10 @@ module.exports.getServiceCatalog = async (req,res) => {
 
 module.exports.updateServiceCatalog  = async (req,res) => {
     try {
-        const {service_catalog_id, service_name, estimated_duration,is_active} = req.body;
+        const {id} = req.params;
+        const {category_id, service_name, description, estimated_duration,is_active} = req.body;
         const validation = createServiceCatalogSchema.safeParse({service_name});
-        const result =  await serviceCatalog.updateServiceCatalog(service_catalog_id, service_name, estimated_duration,is_active);
+        const result =  await serviceCatalog.updateServiceCatalog(id,category_id, service_name, description, estimated_duration,is_active);
         return res.status(201).json({
             message: "Cập nhật dịch vụ thành công",
             data: result,

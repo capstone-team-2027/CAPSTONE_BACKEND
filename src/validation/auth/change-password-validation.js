@@ -3,8 +3,7 @@ const { z } = require("zod");
 const changePasswordSchema = z
   .object({
     currentPassword: z
-      .string({ required_error: "Mật khẩu hiện tại là bắt buộc" })
-      .min(6, "Mật khẩu hiện tại phải có ít nhất 6 ký tự"),
+      .string({ required_error: "Mật khẩu hiện tại là bắt buộc" }),
     newPassword: z
       .string({ required_error: "Mật khẩu mới là bắt buộc" })
       .min(6, "Mật khẩu mới phải có ít nhất 6 ký tự"),  

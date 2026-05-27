@@ -25,6 +25,11 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.STRING(255),
       allowNull: false // Tên dịch vụ mẫu không được để trống
     },
+    description: {
+      type: DataTypes.TEXT,
+      allowNull: true,        // cho phép trống
+      defaultValue: ""
+    },
     estimated_duration: {
       type: DataTypes.INTEGER,
       allowNull: false,
