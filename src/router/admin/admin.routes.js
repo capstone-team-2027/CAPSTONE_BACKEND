@@ -5,6 +5,7 @@ const pricingRulesController = require("../../controller/admin/pricingRules.cont
 const controller = require("../../controller/admin/serviceCombos.controller");
 const serviceCatalogController = require("../../controller/admin/serviceCatalog.controller.");
 const staffController = require("../../controller/admin/manageStaff.controller");
+const controllerServiceBays = require("../../controller/admin/serviceBays.controller");
 
 router.get("/role", staffController.getRoles)
 router.get("/staff", staffController.getStaffList);
