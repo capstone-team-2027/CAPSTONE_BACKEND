@@ -48,7 +48,12 @@ module.exports = {
         allowNull: false,
         type: Sequelize.DATE,
         defaultValue: Sequelize.NOW
-      }
+      },
+      is_deleted: {
+        type: Sequelize.BOOLEAN,
+        allowNull: false,
+        defaultValue: false  // false = chưa xóa, true = đã xóa
+      },
     });
   },
   async down(queryInterface, Sequelize) {

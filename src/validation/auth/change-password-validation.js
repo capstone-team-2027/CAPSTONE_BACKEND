@@ -7,7 +7,7 @@ const changePasswordSchema = z
       .min(6, "Mật khẩu hiện tại phải có ít nhất 6 ký tự"),
     newPassword: z
       .string({ required_error: "Mật khẩu mới là bắt buộc" })
-      .min(6, "Mật khẩu mới phải có ít nhất 6 ký tự"),
+      .min(6, "Mật khẩu mới phải có ít nhất 6 ký tự"),  
     confirmNewPassword: z
       .string({ required_error: "Xác nhận mật khẩu mới là bắt buộc" })
       .min(6, "Xác nhận mật khẩu mới phải có ít nhất 6 ký tự"),

@@ -3,7 +3,6 @@ const authRoutes = require("./../router/common/auth.routes.js");
 const customerRoutes = require("./customer/customer.routes");
 const adminRoutes = require("../router/admin/admin.routes.js");
 const checkClient = require("../middleware/auth.middleware.js");
-
 module.exports = [
   {
     prefix: "/api/auth/",
