@@ -1,8 +1,9 @@
-const svc = require("../../service/admin/serviceCombos.service");
-const { createComboSchema, updateComboSchema, viewCombosQuerySchema } = require("./../../validation/admin/serviceCombos.validation")
-module.exports.listServiceCombos = async (req, res) => {
+const svc = require("../../service/admin/serviceCategory.service");
+const { createCategorySchema, updateCategorySchema, viewCategorySchema } = require("../../validation/admin/serviceCategory.validation")
+
+module.exports.listServiceCategories = async (req, res) => {
   try {
-    const result = viewCombosQuerySchema.safeParse(req.query);
+    const result = viewCategorySchema.safeParse(req.query);
     if (!result.success) {
       const errors = result.error.errors.map((e) => ({
         field: e.path.join("."),
@@ -13,7 +14,7 @@ module.exports.listServiceCombos = async (req, res) => {
 
     const { page, limit, include_services } = result.data;
 
-    const data = await svc.listCombos({ page, limit, include_services });
+    const data = await svc.listCategories({ page, limit, include_services });
     return res.json({ success: true, data });
   } catch (err) {
     console.error("SERVICE COMBOS LIST ERROR:", err);
@@ -21,9 +22,9 @@ module.exports.listServiceCombos = async (req, res) => {
   }
 };
 
-module.exports.createServiceCombos = async (req, res) => {
+module.exports.createServiceCategories = async (req, res) => {
   try {
-    const result = createComboSchema.safeParse(req.body);
+    const result = createCategorySchema.safeParse(req.body);
     if (!result.success) {
       const errors = result.error.errors.map((e) => ({
         field: e.path.join("."),
@@ -34,7 +35,7 @@ module.exports.createServiceCombos = async (req, res) => {
 
     const { category_name, is_active } = result.data;
 
-    const created = await svc.createCombo({
+    const created = await svc.createCategories({
       category_name,
       is_active,
     });
@@ -46,13 +47,13 @@ module.exports.createServiceCombos = async (req, res) => {
   }
 };
 
-module.exports.updateServiceCombos = async (req, res) => {
+module.exports.updateServiceCategories = async (req, res) => {
   try {
     const id = Number(req.params.id);
     if (!Number.isInteger(id) || id <= 0)
       return res.status(400).json({ success: false, message: "invalid id" });
 
-    const result = updateComboSchema.safeParse(req.body);
+    const result = updateCategorySchema.safeParse(req.body);
     if (!result.success) {
       const errors = result.error.errors.map((e) => ({
         field: e.path.join("."),
@@ -62,7 +63,7 @@ module.exports.updateServiceCombos = async (req, res) => {
     }
 
     const { category_name, is_active } = result.data;
-    const updated = await svc.updateCombo(id, {
+    const updated = await svc.updateCategories(id, {
       category_name,
       is_active,
     });
@@ -74,13 +75,13 @@ module.exports.updateServiceCombos = async (req, res) => {
   }
 };
 
-module.exports.removeServiceCombos = async (req, res) => {
+module.exports.removeServiceCategories = async (req, res) => {
   try {
     const id = Number(req.params.id);
     if (!id)
       return res.status(400).json({ success: false, message: "invalid id" });
 
-    await svc.deleteCombo(id);
+    await svc.deleteCategories(id);
     return res.json({ success: true, data: { id } });
   } catch (err) {
     console.error("SERVICE COMBOS DELETE ERROR:", err);

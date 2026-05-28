@@ -13,7 +13,7 @@ const categoryIdAllowsNull =
   ServiceCatalog.rawAttributes.category_id &&
   ServiceCatalog.rawAttributes.category_id.allowNull === true;
 
-module.exports.listCombos = async ({ page = 1, limit = 50, include_services = false }) => {
+module.exports.listCategories = async ({ page = 1, limit = 50, include_services = false }) => {
   const offset = (page - 1) * limit;
   const include =
     include_services && ServiceCatalog
@@ -32,7 +32,7 @@ module.exports.listCombos = async ({ page = 1, limit = 50, include_services = fa
   return { page, limit, total, items };
 }
 
-module.exports.createCombo = async ({
+module.exports.createCategories = async ({
   category_name,
   is_active = true,
 }) => {
@@ -51,7 +51,7 @@ module.exports.createCombo = async ({
   }
 };
 
-module.exports.updateCombo = async (id, { category_name, is_active }) => {
+module.exports.updateCategories = async (id, { category_name, is_active }) => {
   const t = await db.sequelize.transaction();
   try {
     const category = await ServiceCategory.findByPk(id, { transaction: t });
@@ -73,7 +73,7 @@ module.exports.updateCombo = async (id, { category_name, is_active }) => {
   }
 };
 
-module.exports.deleteCombo = async (id) => {
+module.exports.deleteCategories = async (id) => {
   const t = await db.sequelize.transaction();
   try {
     const category = await ServiceCategory.findByPk(id, { transaction: t });

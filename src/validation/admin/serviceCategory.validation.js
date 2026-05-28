@@ -27,7 +27,7 @@ const boolQuery = z
 
 // ── Schemas ────────────────────────────────────────────────────────────────
 
-const viewCombosQuerySchema = z.object({
+const viewCategorySchema = z.object({
   page: toPageInt,
   limit: toLimitInt,
   q: z
@@ -39,7 +39,7 @@ const viewCombosQuerySchema = z.object({
   include_services: boolQuery.optional().default("true"), // default dạng string vì từ query string
 });
 
-const createComboSchema = z.object({
+const createCategorySchema = z.object({
   category_name: z
     .string({ required_error: "category_name is required" })
     .trim()
@@ -49,7 +49,7 @@ const createComboSchema = z.object({
   is_active: z.boolean().optional().default(true),
 });
 
-const updateComboSchema = z
+const updateCategorySchema = z
   .object({
     category_name: z
       .string()
@@ -78,7 +78,7 @@ const updateComboSchema = z
   });
 
 module.exports = {
-  viewCombosQuerySchema,
-  createComboSchema,
-  updateComboSchema,
+  viewCategorySchema,
+  createCategorySchema,
+  updateCategorySchema,
 };
