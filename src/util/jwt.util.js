@@ -6,7 +6,7 @@ module.exports.generateAccessToken = (user) => {
             id: user.id,
             roleId: user.roleId
         },
-        process.env.JWT_SECRET,
+        process.env.ACCESS_TOKEN_KEY,
         {
             expiresIn: process.env.ACCESSTOKEN_ExpiresIn
         }

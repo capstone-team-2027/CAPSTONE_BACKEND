@@ -1,7 +1,8 @@
-
 const jwt = require("jsonwebtoken");
+const db = require("../../models");
 /** @type {import("sequelize").ModelStatic<import("sequelize").Model>} */
 const User = db.User;
+const Role = db.Role;
 module.exports.authenticate = async (req, res, next) => {
     try {
         const authHeader = req.headers.authorization;
@@ -19,7 +20,7 @@ module.exports.authenticate = async (req, res, next) => {
             });
         }
         const token = parts[1];
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_KEY);
         const user = await User.findOne({
             where: {
                 id: decoded.id,
@@ -29,7 +30,7 @@ module.exports.authenticate = async (req, res, next) => {
             },
             include: [
                 {
-                    model: "Role",
+                    model: Role,
                     as: "role",
                 },
             ],
@@ -45,7 +46,7 @@ module.exports.authenticate = async (req, res, next) => {
         console.log("Authentication success");
         next();
     } catch (error) {
-        console.error("❌ Auth Error:", error);
+        console.error("❌ Auth Error:", error.message);
 
         if (error.name === "TokenExpiredError") {
             return res.status(401).json({
@@ -75,7 +76,7 @@ module.exports.authorizeRoles = (...allowedRoleNames) => {
                 message: "Unauthorized",
             });
         }
-        const roleName = user?.roleId?.roleCode?.toString().toLowerCase();
+        const roleName = user?.role?.roleCode?.toString().toLowerCase();
         if (!roleName) {
             return res.status(403).json({
                 success: false,
