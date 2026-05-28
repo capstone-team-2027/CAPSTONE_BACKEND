@@ -15,7 +15,7 @@ const createStaffSchema = z
       .min(1, "Vai trò là bắt buộc"),
     password: z
       .string()
-      .min(8, "Mật khẩu phải có ít nhất 8 ký tự")
+      .min(6, "Mật khẩu phải có ít nhất 8 ký tự")
       .optional(),
     confirmPassword: z.string().optional(),
   })
