@@ -5,8 +5,11 @@ const controller = require("../../controller/admin/serviceCombos.controller");
 const serviceCatalogController = require("../../controller/admin/serviceCatalog.controller.");
 const staffController = require("../../controller/admin/manageStaff.controller");
 const controllerServiceBays = require("../../controller/admin/serviceBays.controller");
+const employeeRankingController = require("../../controller/admin/employeeRanking.controller");
 
+router.get("/employee-ranking", employeeRankingController.getEmployeeRanking);
 router.get("/role", staffController.getRoles)
+
 router.get("/staff", staffController.getStaffList);
 router.post("/staff", staffController.createStaff);
 router.put("/staff/:userId", staffController.updateStaff);
