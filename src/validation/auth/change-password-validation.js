@@ -5,25 +5,15 @@ const trimString = (v) => (typeof v === "string" ? v.trim() : v);
 
 const changePasswordSchema = z
   .object({
-    currentPassword: z.preprocess(
-      trimString,
-      z
-        .string({ required_error: "Mật khẩu hiện tại là bắt buộc" })
-        .min(6, "Mật khẩu hiện tại phải có ít nhất 6 ký tự")
-    ),
-    newPassword: z.preprocess(
-      trimString,
-      z
-        .string({ required_error: "Mật khẩu mới là bắt buộc" })
-        .min(6, "Mật khẩu mới phải có ít nhất 6 ký tự")
-      // .refine((p) => /[A-Z]/.test(p) && /[0-9]/.test(p), { message: "Mật khẩu mới phải chứa chữ hoa và số" })
-    ),
-    confirmNewPassword: z.preprocess(
-      trimString,
-      z
-        .string({ required_error: "Xác nhận mật khẩu mới là bắt buộc" })
-        .min(6, "Xác nhận mật khẩu mới phải có ít nhất 6 ký tự")
-    ),
+    currentPassword: z.string({
+      required_error: "Mật khẩu hiện tại là bắt buộc",
+    }),
+    newPassword: z
+      .string({ required_error: "Mật khẩu mới là bắt buộc" })
+      .min(6, "Mật khẩu mới phải có ít nhất 6 ký tự"),
+    confirmNewPassword: z
+      .string({ required_error: "Xác nhận mật khẩu mới là bắt buộc" })
+      .min(6, "Xác nhận mật khẩu mới phải có ít nhất 6 ký tự"),
   })
   .superRefine((data, ctx) => {
     // If basic field validations failed (handled by zod), skip logical checks to avoid stacked errors

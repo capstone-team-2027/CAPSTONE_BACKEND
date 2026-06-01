@@ -39,7 +39,12 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.BOOLEAN,
       allowNull: false,
       defaultValue: true // Mặc định luật này được bật
-    }
+    },
+    is_deleted: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false
+    },
   }, {
     sequelize,
     modelName: 'Pricing_Rules',

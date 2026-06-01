@@ -1,5 +1,4 @@
 const { z } = require("zod");
-const { register } = require("../../service/auth/auth.service");
 
 const loginSchema = z.object({
   phone: z
@@ -29,4 +28,10 @@ const registerSchema = z.object({
         .min(6, "Mật khẩu phải có ít nhất 6 ký tự")
 });
 
-module.exports = { loginSchema,checkPhoneSchema,registerSchema  };
+const forgotPasswordSchema = z.object({
+    password: z
+        .string({ required_error: "Mật khẩu là bắt buộc" })
+        .min(6, "Mật khẩu phải có ít nhất 6 ký tự")
+});
+
+module.exports = { loginSchema,checkPhoneSchema,registerSchema,forgotPasswordSchema  };
