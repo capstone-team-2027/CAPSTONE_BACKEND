@@ -40,7 +40,7 @@ router.put("/service-bay/:id", controllerServiceBays.updateServiceBay);
 router.delete("/service-bay/:id", controllerServiceBays.removeServiceBay);
 
 router.get("/warranty-policies", warrantyController.getWarrantyPolicies);
-router.post("/warranty-policies", warrantyController.createWarrantyPolicy);
-router.put("/warranty-policies/:id", warrantyController.updateWarrantyPolicy);
+router.post("/warranty-policy", warrantyController.createWarrantyPolicy);
+router.put("/warranty-policy/:id", warrantyController.updateWarrantyPolicy);
 
 module.exports = router;
