@@ -1,5 +1,6 @@
 const WarrantyPoliciesService = require("./../../service/admin/warrantyPolicies.service");
 const { createWarrantyPolicySchema, updateWarrantyPolicySchema } = require("./../../validation/admin/warrantyPolicy.validator");
+const { uploadToCloudinary } = require("./../../helper/uploadToCloudinary.helper");
 
 module.exports.getWarrantyPolicies = async (req, res) => {
     try {
@@ -21,6 +22,26 @@ module.exports.getWarrantyPolicies = async (req, res) => {
 
 module.exports.createWarrantyPolicy = async (req, res) => {
     try {
+        if (req.body.is_active === 'true') req.body.is_active = true;
+        if (req.body.is_active === 'false') req.body.is_active = false;
+        if (req.body.image_cover_url === 'null' || req.body.image_cover_url === '') req.body.image_cover_url = null;
+        if (req.body.pdf_document_url === 'null' || req.body.pdf_document_url === '') req.body.pdf_document_url = null;
+        if (req.body.description === 'null' || req.body.description === '') req.body.description = null;
+
+        // Upload image cover if uploaded
+        if (req.files && req.files['image_cover'] && req.files['image_cover'][0]) {
+            const file = req.files['image_cover'][0];
+            const uploadResult = await uploadToCloudinary(file.buffer, "WDP301", false);
+            req.body.image_cover_url = uploadResult.secure_url;
+        }
+
+        // Upload PDF document if uploaded
+        if (req.files && req.files['pdf_document'] && req.files['pdf_document'][0]) {
+            const file = req.files['pdf_document'][0];
+            const uploadResult = await uploadToCloudinary(file.buffer, "WDP301", true);
+            req.body.pdf_document_url = uploadResult.secure_url;
+        }
+
         const parsed = createWarrantyPolicySchema.safeParse(req.body);
         if (!parsed.success) {
             return res.status(400).json({
@@ -52,6 +73,26 @@ module.exports.createWarrantyPolicy = async (req, res) => {
 module.exports.updateWarrantyPolicy = async (req, res) => {
     try {
         const { id } = req.params;
+
+        if (req.body.is_active === 'true') req.body.is_active = true;
+        if (req.body.is_active === 'false') req.body.is_active = false;
+        if (req.body.image_cover_url === 'null' || req.body.image_cover_url === '') req.body.image_cover_url = null;
+        if (req.body.pdf_document_url === 'null' || req.body.pdf_document_url === '') req.body.pdf_document_url = null;
+        if (req.body.description === 'null' || req.body.description === '') req.body.description = null;
+
+        // Upload image cover if uploaded
+        if (req.files && req.files['image_cover'] && req.files['image_cover'][0]) {
+            const file = req.files['image_cover'][0];
+            const uploadResult = await uploadToCloudinary(file.buffer, "WDP301", false);
+            req.body.image_cover_url = uploadResult.secure_url;
+        }
+
+        // Upload PDF document if uploaded
+        if (req.files && req.files['pdf_document'] && req.files['pdf_document'][0]) {
+            const file = req.files['pdf_document'][0];
+            const uploadResult = await uploadToCloudinary(file.buffer, "WDP301", true);
+            req.body.pdf_document_url = uploadResult.secure_url;
+        }
 
         const parsed = updateWarrantyPolicySchema.safeParse(req.body);
         if (!parsed.success) {
