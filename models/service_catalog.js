@@ -14,6 +14,12 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: 'category_id',
         as: 'category'
       });
+      this.belongsToMany(models.Service_Combo, {
+        through: models.Service_Combo_Catalogs,
+        foreignKey: 'catalog_id',
+        otherKey: 'combo_id',
+        as: 'combos'
+      });
     }
   }
   Service_Catalog.init({
