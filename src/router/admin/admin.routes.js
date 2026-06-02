@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const pricingRulesController = require("../../controller/admin/pricingRules.controller");
-const controller = require("../../controller/admin/serviceCombos.controller");
+const controllerCatagories = require("../../controller/admin/serviceCategories.controller");
 const serviceCatalogController = require("../../controller/admin/serviceCatalog.controller.");
 const staffController = require("../../controller/admin/manageStaff.controller");
 const controllerServiceBays = require("../../controller/admin/serviceBays.controller");
@@ -29,10 +29,10 @@ router.get("/pricing-rules/:id", pricingRulesController.getPricingRuleById);
 router.put("/pricing-rules/:id", pricingRulesController.updatePricingRule);
 router.delete("/pricing-rules/:id", pricingRulesController.deletePricingRule);
 
-router.get("/service-category", controller.listServiceCategories);
-router.post("/service-category", controller.createServiceCategories);
-router.put("/service-category/:id", controller.updateServiceCategories);
-router.delete("/service-category/:id", controller.removeServiceCategories);
+router.get("/service-category", controllerCatagories.listServiceCategories);
+router.post("/service-category", controllerCatagories.createServiceCategories);
+router.put("/service-category/:id", controllerCatagories.updateServiceCategories);
+router.delete("/service-category/:id", controllerCatagories.removeServiceCategories);
 
 router.get("/service-bay", controllerServiceBays.listServiceBays);
 router.post("/service-bay", controllerServiceBays.createServiceBay);
