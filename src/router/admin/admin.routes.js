@@ -3,6 +3,7 @@ const router = express.Router();
 const pricingRulesController = require("../../controller/admin/pricingRules.controller");
 const controllerCatagories = require("../../controller/admin/serviceCategories.controller");
 const serviceCatalogController = require("../../controller/admin/serviceCatalog.controller.");
+const serviceCombosController = require("../../controller/admin/serviceCombos.controller");
 const staffController = require("../../controller/admin/manageStaff.controller");
 const controllerServiceBays = require("../../controller/admin/serviceBays.controller");
 const warrantyController = require("../../controller/admin/warrantyPolicies.controller");
@@ -22,6 +23,10 @@ router.patch(
   "/service-catalog/:id",
   serviceCatalogController.updateServiceCatalog
 );
+
+router.get("/service-combos", serviceCombosController.getServiceCombos);
+router.post("/service-combos", serviceCombosController.createServiceCombo);
+router.put("/service-combos/:id", serviceCombosController.updateServiceCombo);
 
 router.get("/pricing-rules", pricingRulesController.getAllPricingRules);
 router.post("/pricing-rules", pricingRulesController.createPricingRules);
