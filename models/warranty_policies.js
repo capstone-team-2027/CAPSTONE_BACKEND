@@ -23,20 +23,16 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.STRING(255),
       allowNull: false
     },
-    warranty_type: {
-      type: DataTypes.STRING(20),
-      allowNull: false
-    },
-    duration_months: {
-      type: DataTypes.INTEGER,
-      allowNull: true
-    },
-    distance_km: {
-      type: DataTypes.INTEGER,
-      allowNull: true
-    },
     description: {
       type: DataTypes.TEXT,
+      allowNull: true
+    },
+    image_cover_url: {
+      type: DataTypes.STRING(255),
+      allowNull: true
+    },
+    pdf_document_url: {
+      type: DataTypes.STRING(255),
       allowNull: true
     },
     is_active: {

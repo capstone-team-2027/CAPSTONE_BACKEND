@@ -10,7 +10,7 @@ module.exports.listWarrantyPolicies = async () => {
 };
 
 module.exports.createWarrantyPolicy = async (body) => {
-    const { policy_code, policy_name, warranty_type, duration_months, distance_km, description, is_active } = body;
+    const { policy_code, policy_name, image_cover_url, pdf_document_url, description, is_active } = body;
 
     const existing = await Warranty_Policies.findOne({ where: { policy_code } });
     if (existing) throw new Error('Mã chính sách bảo hành đã tồn tại');
@@ -18,9 +18,8 @@ module.exports.createWarrantyPolicy = async (body) => {
     const newPolicy = await Warranty_Policies.create({
         policy_code,
         policy_name,
-        warranty_type,
-        duration_months: duration_months !== undefined ? duration_months : null,
-        distance_km: distance_km !== undefined ? distance_km : null,
+        image_cover_url,
+        pdf_document_url,
         description,
         is_active: is_active !== undefined ? is_active : true
     });
