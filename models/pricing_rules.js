@@ -10,6 +10,10 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: 'pricing_rule_id',
         as: 'categories'
       });
+      this.hasMany(models.Service_Combo_Catalogs, {
+        foreignKey: 'pricing_rule_id',
+        as: 'comboCatalogs'
+      });
     }
   }
   Pricing_Rules.init({
