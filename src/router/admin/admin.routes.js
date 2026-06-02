@@ -39,8 +39,24 @@ router.post("/service-bay", controllerServiceBays.createServiceBay);
 router.put("/service-bay/:id", controllerServiceBays.updateServiceBay);
 router.delete("/service-bay/:id", controllerServiceBays.removeServiceBay);
 
+const warrantyUpload = require("../../util/warrantyUpload.util");
+
 router.get("/warranty-policies", warrantyController.getWarrantyPolicies);
-router.post("/warranty-policy", warrantyController.createWarrantyPolicy);
-router.put("/warranty-policy/:id", warrantyController.updateWarrantyPolicy);
+router.post(
+  "/warranty-policy",
+  warrantyUpload.fields([
+    { name: "image_cover", maxCount: 1 },
+    { name: "pdf_document", maxCount: 1 }
+  ]),
+  warrantyController.createWarrantyPolicy
+);
+router.put(
+  "/warranty-policy/:id",
+  warrantyUpload.fields([
+    { name: "image_cover", maxCount: 1 },
+    { name: "pdf_document", maxCount: 1 }
+  ]),
+  warrantyController.updateWarrantyPolicy
+);
 
 module.exports = router;

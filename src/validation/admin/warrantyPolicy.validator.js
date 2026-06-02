@@ -9,23 +9,18 @@ const createWarrantyPolicySchema = z.object({
         .min(1, 'Tên chính sách bảo hành không được để trống')
         .max(255, 'Tên chính sách bảo hành không được quá 255 ký tự'),
 
-    warranty_type: z.enum(['TIME', 'DISTANCE', 'BOTH', 'NONE'], {
-        errorMap: () => ({ message: 'Loại bảo hành phải là TIME, DISTANCE, BOTH, hoặc NONE' })
-    }),
-
-    duration_months: z.number().int().nonnegative().nullable().optional(),
-    distance_km: z.number().int().nonnegative().nullable().optional(),
     description: z.string().nullable().optional(),
+    image_cover_url: z.string().max(255, 'Ảnh cover không được quá 255 ký tự').nullable().optional(),
+    pdf_document_url: z.string().max(255, 'Tài liệu PDF không được quá 255 ký tự').nullable().optional(),
     is_active: z.boolean().default(true)
 });
 
 const updateWarrantyPolicySchema = z.object({
     policy_code: z.string().min(1, 'Mã chính sách bảo hành không được để trống').max(50).optional(),
     policy_name: z.string().min(1, 'Tên chính sách bảo hành không được để trống').max(255).optional(),
-    warranty_type: z.enum(['TIME', 'DISTANCE', 'BOTH', 'NONE']).optional(),
-    duration_months: z.number().int().nonnegative().nullable().optional(),
-    distance_km: z.number().int().nonnegative().nullable().optional(),
     description: z.string().nullable().optional(),
+    image_cover_url: z.string().max(255).nullable().optional(),
+    pdf_document_url: z.string().max(255).nullable().optional(),
     is_active: z.boolean().optional()
 });
 
