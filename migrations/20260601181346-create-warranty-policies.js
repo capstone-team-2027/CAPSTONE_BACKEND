@@ -18,20 +18,16 @@ module.exports = {
         type: Sequelize.STRING(255),
         allowNull: false
       },
-      warranty_type: {
-        type: Sequelize.STRING(20),
-        allowNull: false // e.g. TIME, DISTANCE, BOTH, NONE
-      },
-      duration_months: {
-        type: Sequelize.INTEGER,
-        allowNull: true
-      },
-      distance_km: {
-        type: Sequelize.INTEGER,
-        allowNull: true
-      },
       description: {
         type: Sequelize.TEXT,
+        allowNull: true
+      },
+      image_cover_url: {
+        type: Sequelize.STRING(255),
+        allowNull: true
+      },
+      pdf_document_url: {
+        type: Sequelize.STRING(255),
         allowNull: true
       },
       is_active: {
