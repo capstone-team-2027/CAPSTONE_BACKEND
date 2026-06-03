@@ -21,17 +21,19 @@ module.exports = (sequelize, DataTypes) => {
         as: 'vehicle'
       });
 
-      // 3. Một lịch hẹn đăng ký một nhóm Danh mục dịch vụ (Service_Category)
-      this.belongsTo(models.Service_Categories, {
-        foreignKey: 'category_id',
-        as: 'category'
-      });
-
       // 4. Mối quan hệ 1-1: Khi xe đến xưởng, lịch hẹn này sẽ sinh ra tối đa 1 Lệnh sửa chữa (Service_Order)
       if (models.Service_Orders) {
         this.hasOne(models.Service_Orders, {
           foreignKey: 'appointment_id',
           as: 'serviceOrder'
+        });
+      }
+
+      // 5. Một lịch hẹn có nhiều chi tiết lịch hẹn (Appointment_Details)
+      if (models.Appointment_Details) {
+        this.hasMany(models.Appointment_Details, {
+          foreignKey: 'appointment_id',
+          as: 'appointmentDetails'
         });
       }
     }
@@ -49,14 +51,6 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.DATE,
       allowNull: false // FIX: Ngày giờ hẹn bắt buộc phải có
     },
-    category_id: {
-      type: DataTypes.INTEGER,
-      allowNull: false // FIX: Nhóm dịch vụ mong muốn bắt buộc phải chọn
-    },
-    notes: {
-      type: DataTypes.TEXT,
-      allowNull: true // Cho phép null nếu khách không có yêu cầu đặc biệt
-    },
     status: {
       type: DataTypes.STRING(50),
       allowNull: false,
@@ -66,7 +60,9 @@ module.exports = (sequelize, DataTypes) => {
     sequelize,
     modelName: 'Appointments',
     tableName: 'Appointments',
-    timestamps: true
+    timestamps: true,
+    createdAt: 'created_at',
+    updatedAt: false
   });
   return Appointments;
 };
