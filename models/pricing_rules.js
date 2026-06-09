@@ -4,13 +4,6 @@ const {
 } = require('sequelize');
 module.exports = (sequelize, DataTypes) => {
   class Pricing_Rules extends Model {
-
-    static associate(models) {
-      this.hasMany(models.Part_Categories, {
-        foreignKey: 'pricing_rule_id',
-        as: 'categories'
-      });
-    }
   }
   Pricing_Rules.init({
     category: {

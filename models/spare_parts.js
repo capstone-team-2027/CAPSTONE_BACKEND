@@ -30,6 +30,10 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.STRING(255),
       allowNull: false
     },
+    brand: {
+      type: DataTypes.STRING(100),
+      allowNull: true // Cho phép null nếu hàng không rõ thương hiệu (hoặc hàng oem chưa phân loại)
+    },
     stock_quantity: {
       type: DataTypes.INTEGER,
       allowNull: false,
@@ -73,10 +77,6 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: true,
       defaultValue: 0
     },
-    image_url: {
-      type: DataTypes.STRING(255),
-      allowNull: true
-    }
   }, {
     sequelize,
     modelName: 'Spare_Parts',
