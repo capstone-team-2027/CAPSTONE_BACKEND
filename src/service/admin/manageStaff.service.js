@@ -31,7 +31,7 @@ module.exports.getStaffList = async ({ page = 1, limit = 20, search, roleCode })
 
   const roleFilter = {
     roleCode: {
-      [Op.ne]: "CUSTOMER",
+      [Op.notIn]: ["CUSTOMER", "ADMIN"],
     },
   };
   if (roleCode && String(roleCode).trim()) {
@@ -45,7 +45,7 @@ module.exports.getStaffList = async ({ page = 1, limit = 20, search, roleCode })
         model: Role,
         as: "role",
         where: roleFilter,
-        attributes: ["id", "roleCode","roleName"],
+        attributes: ["id", "roleCode", "roleName"],
       },
     ],
     attributes: ["id", "fullName", "phoneNumber", "status", "createdAt"],
@@ -172,9 +172,9 @@ module.exports.updateStaff = async (userId, payload) => {
 };
 
 
-module.exports.getRoles = async (req,res) =>{
+module.exports.getRoles = async (req, res) => {
   const roles = await Role.findAll({
-    attributes: ['id','roleCode','roleName']
+    attributes: ['id', 'roleCode', 'roleName']
   });
   return roles
 };

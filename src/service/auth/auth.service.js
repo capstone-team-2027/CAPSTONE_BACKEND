@@ -20,12 +20,14 @@ module.exports.login = async (phone, password) => {
       },
     ],
   });
+
   if (!user) {
     throw {
       status: 404,
       message: "Số điện thoại hoặc Mật khẩu bị sai",
     };
   }
+
   const isMatch = await bcrypt.compare(password, user.password);
   if (!isMatch) {
     throw {
@@ -33,27 +35,47 @@ module.exports.login = async (phone, password) => {
       message: "Số điện thoại hoặc Mật khẩu bị sai",
     };
   }
+
+  switch (user.status) {
+    case "PENDING":
+      throw {
+        status: 403,
+        message: "Tài khoản chưa được kích hoạt. Vui lòng liên hệ quản trị viên.",
+      };
+    case "INACTIVE":
+      throw {
+        status: 403,
+        message: "Tài khoản đã bị vô hiệu hóa. Vui lòng liên hệ quản trị viên.",
+      };
+    case "BANNED":
+      throw {
+        status: 403,
+        message: "Tài khoản đã bị khóa vĩnh viễn.",
+      };
+    case "ACTIVE":
+      break;
+    default:
+      throw {
+        status: 403,
+        message: "Trạng thái tài khoản không hợp lệ.",
+      };
+  }
+
   const accessToken = jwt.sign(
-    {
-      id: user.id,
-      roleId: user.roleId,
-    },
+    { id: user.id, roleId: user.roleId },
     process.env.ACCESS_TOKEN_KEY,
-    {
-      expiresIn: process.env.ACCESSTOKEN_ExpiresIn,
-    },
+    { expiresIn: process.env.ACCESSTOKEN_ExpiresIn },
   );
+
   const refreshToken = jwt.sign(
-    {
-      id: user.id,
-    },
+    { id: user.id },
     process.env.REFRESH_TOKEN_KEY,
-    {
-      expiresIn: process.env.REFESHTOKEN_ExpiresIn,
-    },
+    { expiresIn: process.env.REFESHTOKEN_ExpiresIn },
   );
+
   user.refreshToken = refreshToken;
   await user.save();
+
   return {
     accessToken,
     refreshToken,
@@ -63,6 +85,7 @@ module.exports.login = async (phone, password) => {
       phoneNumber: user.phoneNumber,
       role: user.role?.roleCode,
       avatar: user.avatar,
+      status: user.status,
     },
   };
 };

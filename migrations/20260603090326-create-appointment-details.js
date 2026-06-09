@@ -1,44 +1,50 @@
 'use strict';
+
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up(queryInterface, Sequelize) {
-    await queryInterface.createTable('Appointments', {
+    await queryInterface.createTable('Appointment_Details', {
       id: {
         allowNull: false,
         autoIncrement: true,
         primaryKey: true,
         type: Sequelize.INTEGER
       },
-      customer_id: {
+      appointment_id: {
         type: Sequelize.INTEGER,
         allowNull: false,
         references: {
-          model: 'Customers',
+          model: 'Appointments',
           key: 'id'
         },
         onUpdate: 'CASCADE',
-        onDelete: 'RESTRICT'
+        onDelete: 'CASCADE'
       },
-      vehicle_id: {
+      catalog_id: {
         type: Sequelize.INTEGER,
-        allowNull: false,
+        allowNull: true,
         references: {
-          model: 'Vehicles',
+          model: 'Service_Catalogs',
           key: 'id'
         },
         onUpdate: 'CASCADE',
-        onDelete: 'RESTRICT'
+        onDelete: 'SET NULL'
       },
-      scheduled_time: {
-        type: Sequelize.DATE,
+      combo_id: {
+        type: Sequelize.INTEGER,
+        allowNull: true,
+        references: {
+          model: 'Service_Combos',
+          key: 'id'
+        },
+        onUpdate: 'CASCADE',
+        onDelete: 'SET NULL'
+      },
+      price_snapshot: {
+        type: Sequelize.DECIMAL(12, 2),
         allowNull: false
       },
-      status: {
-        type: Sequelize.STRING(50),
-        allowNull: false,
-        defaultValue: 'PENDING'
-      },
-      created_at: {
+      createdAt: {
         allowNull: false,
         type: Sequelize.DATE,
         defaultValue: Sequelize.NOW
@@ -50,7 +56,8 @@ module.exports = {
       }
     });
   },
+
   async down(queryInterface, Sequelize) {
-    await queryInterface.dropTable('Appointments');
+    await queryInterface.dropTable('Appointment_Details');
   }
 };

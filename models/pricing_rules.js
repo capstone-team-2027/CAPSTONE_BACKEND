@@ -4,6 +4,17 @@ const {
 } = require('sequelize');
 module.exports = (sequelize, DataTypes) => {
   class Pricing_Rules extends Model {
+
+    static associate(models) {
+      this.hasMany(models.Part_Categories, {
+        foreignKey: 'pricing_rule_id',
+        as: 'categories'
+      });
+      this.hasMany(models.Service_Combo_Catalogs, {
+        foreignKey: 'pricing_rule_id',
+        as: 'comboCatalogs'
+      });
+    }
   }
   Pricing_Rules.init({
     category: {

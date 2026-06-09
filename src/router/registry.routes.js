@@ -2,6 +2,7 @@ const ROLES = require("./../constants/roles.js");
 const authRoutes = require("./../router/common/auth.routes.js");
 const customerRoutes = require("./customer/customer.routes");
 const adminRoutes = require("../router/admin/admin.routes.js");
+const serviceRoutes = require("./common/service.routes.js");
 const inventoryRoutes = require("../router/inventory/inventory.routes.js");
 const checkClient = require("../middleware/auth.middleware.js");
 module.exports = [
@@ -24,6 +25,10 @@ module.exports = [
       checkClient.authorizeRoles(ROLES.ADMIN),
     ],
     router: adminRoutes,
+  },
+  {
+    prefix: "/api/guest",
+    router: serviceRoutes,
   },
     {
     prefix: "/api/inventory",

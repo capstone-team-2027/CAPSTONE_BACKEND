@@ -27,6 +27,10 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.STRING(100),
       allowNull: false
     },
+      pricing_rule_id: {
+      type: DataTypes.INTEGER,
+      allowNull: true
+    },
       is_active: {
       type: DataTypes.BOOLEAN,
       allowNull: false,

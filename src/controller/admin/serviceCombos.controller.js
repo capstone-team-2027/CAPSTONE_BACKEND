@@ -1,92 +1,70 @@
-const svc = require("../../service/admin/serviceCategory.service");
-const { createCategorySchema, updateCategorySchema, viewCategorySchema } = require("../../validation/admin/serviceCategory.validation")
+const {
+  createServiceComboSchema,
+  updateServiceComboSchema,
+} = require("../../validation/admin/serviceCombos.validation");
+const serviceCombosService = require("../../service/admin/serviceCombos.service");
 
-module.exports.listServiceCategories = async (req, res) => {
+module.exports.getServiceCombos = async (req, res) => {
   try {
-    const result = viewCategorySchema.safeParse(req.query);
-    if (!result.success) {
-      const errors = result.error.errors.map((e) => ({
-        field: e.path.join("."),
-        message: e.message,
-      }));
-      return res.status(400).json({ success: false, errors });
-    }
-
-    const { page, limit, include_services } = result.data;
-
-    const data = await svc.listCategories({ page, limit, include_services });
-    return res.json({ success: true, data });
-  } catch (err) {
-    console.error("SERVICE COMBOS LIST ERROR:", err);
-    return res.status(500).json({ success: false, message: err.message });
+    const result = await serviceCombosService.listServiceCombos();
+    return res.status(200).json({ data: result });
+  } catch (error) {
+    return res.status(error.status || 500).json({ message: error.message || "Internal server error" });
   }
 };
 
-module.exports.createServiceCategories = async (req, res) => {
+module.exports.createServiceCombo = async (req, res) => {
   try {
-    const result = createCategorySchema.safeParse(req.body);
-    if (!result.success) {
-      const errors = result.error.errors.map((e) => ({
-        field: e.path.join("."),
-        message: e.message,
-      }));
-      return res.status(400).json({ success: false, errors });
-    }
-
-    const { category_name, is_active } = result.data;
-
-    const created = await svc.createCategories({
-      category_name,
+    const { combo_name, description, serviceCatalogIds, is_active } = req.body;
+    const validation = createServiceComboSchema.safeParse({
+      combo_name,
+      description,
+      serviceCatalogIds,
       is_active,
     });
 
-    return res.status(201).json({ success: true, data: created });
-  } catch (err) {
-    console.error("SERVICE COMBOS CREATE ERROR:", err);
-    return res.status(500).json({ success: false, message: err.message });
+    if (!validation.success) {
+      return res.status(400).json({ message: validation.error.issues[0].message });
+    }
+
+    const result = await serviceCombosService.createServiceCombo(
+      validation.data.combo_name,
+      validation.data.description,
+      validation.data.serviceCatalogIds,
+      validation.data.is_active,
+    );
+
+    return res.status(201).json({ message: "Tạo gói dịch vụ thành công", data: result });
+  } catch (error) {
+    return res.status(error.status || 500).json({ message: error.message || "Internal server error" });
   }
 };
 
-module.exports.updateServiceCategories = async (req, res) => {
+module.exports.updateServiceCombo = async (req, res) => {
   try {
-    const id = Number(req.params.id);
-    if (!Number.isInteger(id) || id <= 0)
-      return res.status(400).json({ success: false, message: "invalid id" });
-
-    const result = updateCategorySchema.safeParse(req.body);
-    if (!result.success) {
-      const errors = result.error.errors.map((e) => ({
-        field: e.path.join("."),
-        message: e.message,
-      }));
-      return res.status(400).json({ success: false, errors });
-    }
-
-    const { category_name, is_active } = result.data;
-    const updated = await svc.updateCategories(id, {
-      category_name,
+    const { id } = req.params;
+    const { combo_name, description, serviceCatalogIds, is_active } = req.body;
+    const validation = updateServiceComboSchema.safeParse({
+      combo_name,
+      description,
+      serviceCatalogIds,
       is_active,
     });
 
-    return res.json({ success: true, data: updated });
-  } catch (err) {
-    console.error("SERVICE COMBOS UPDATE ERROR:", err);
-    return res.status(500).json({ success: false, message: err.message });
+    if (!validation.success) {
+      return res.status(400).json({ message: validation.error.issues[0].message });
+    }
+
+    const result = await serviceCombosService.updateServiceCombo(
+      id,
+      validation.data.combo_name,
+      validation.data.description,
+      validation.data.serviceCatalogIds,
+      validation.data.is_active,
+    );
+
+    return res.status(200).json({ message: "Cập nhật gói dịch vụ thành công", data: result });
+  } catch (error) {
+    return res.status(error.status || 500).json({ message: error.message || "Internal server error" });
   }
 };
-
-module.exports.removeServiceCategories = async (req, res) => {
-  try {
-    const id = Number(req.params.id);
-    if (!id)
-      return res.status(400).json({ success: false, message: "invalid id" });
-
-    await svc.deleteCategories(id);
-    return res.json({ success: true, data: { id } });
-  } catch (err) {
-    console.error("SERVICE COMBOS DELETE ERROR:", err);
-    return res.status(500).json({ success: false, message: err.message });
-  }
-}
-
-
