@@ -29,7 +29,7 @@ module.exports = (sequelize, DataTypes) => {
     },
       pricing_rule_id: {
       type: DataTypes.INTEGER,
-      allowNull: true
+      allowNull: false
     },
       is_active: {
       type: DataTypes.BOOLEAN,
