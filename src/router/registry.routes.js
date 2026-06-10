@@ -2,8 +2,7 @@ const ROLES = require("./../constants/roles.js");
 const authRoutes = require("./../router/common/auth.routes.js");
 const customerRoutes = require("./customer/customer.routes");
 const adminRoutes = require("../router/admin/admin.routes.js");
-const serviceRoutes = require("./common/service.routes.js");
-const garageConfigRoutes = require("./common/garageConfigurations.routes.js");
+const serviceRoutes = require("./common/guest.routes.js");
 const checkClient = require("../middleware/auth.middleware.js");
 module.exports = [
   {
@@ -30,8 +29,5 @@ module.exports = [
     prefix: "/api/guest",
     router: serviceRoutes,
   },
-  {
-    prefix: "/api/guest/garage-configurations",
-    router: garageConfigRoutes,
-  },
+
 ];
