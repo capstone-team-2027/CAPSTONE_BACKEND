@@ -4,6 +4,7 @@ const customerRoutes = require("./customer/customer.routes");
 const adminRoutes = require("../router/admin/admin.routes.js");
 const serviceRoutes = require("./common/service.routes.js");
 const garageConfigRoutes = require("./common/garageConfigurations.routes.js");
+const inventoryRoutes = require("../router/inventory/inventory.routes.js");
 const checkClient = require("../middleware/auth.middleware.js");
 module.exports = [
   {
@@ -33,5 +34,13 @@ module.exports = [
   {
     prefix: "/api/guest/garage-configurations",
     router: garageConfigRoutes,
+  },
+  {
+    prefix: "/api/inventory",
+    middlewares: [
+      checkClient.authenticate,
+      checkClient.authorizeRoles(ROLES.ADMIN),
+    ],
+    router: inventoryRoutes,
   },
 ];
