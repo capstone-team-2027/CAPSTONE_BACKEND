@@ -264,3 +264,26 @@ module.exports.deleteAppointment = async (userId, appointmentId) => {
     await appointment.destroy();
     return { message: "Xóa lịch hẹn thành công" };
 };
+
+module.exports.cancelAppointment = async (userId, appointmentId) => {
+    const customer = await db.Customers.findOne({ where: { user_id: userId } });
+    if (!customer) {
+        throw { status: 404, message: "Hồ sơ khách hàng không tồn tại" };
+    }
+
+    const appointment = await db.Appointments.findOne({
+        where: { id: appointmentId, customer_id: customer.id }
+    });
+
+    if (!appointment) {
+        throw { status: 404, message: "Lịch hẹn không tồn tại hoặc không thuộc quyền sở hữu của bạn" };
+    }
+
+    if (appointment.status !== 'PENDING' && appointment.status !== 'CONFIRMED') {
+        throw { status: 400, message: `Không thể hủy lịch hẹn khi đã ở trạng thái: ${appointment.status}` };
+    }
+
+    appointment.status = 'CANCELLED';
+    await appointment.save();
+    return { message: "Hủy lịch hẹn thành công", data: appointment };
+};

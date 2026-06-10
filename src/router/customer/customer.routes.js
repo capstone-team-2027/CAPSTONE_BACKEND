@@ -13,5 +13,7 @@ router.put("/change-password", profileController.changePassword);
 router.get("/appointment", appointmentController.getAppointment);
 router.post("/appointment", appointmentController.createAppointment);
 router.delete("/appointment", appointmentController.deleteAppointment);
+router.put("/appointment/cancel", appointmentController.cancelAppointment);
+router.post("/analyze-car-color", upload.single("image"), appointmentController.analyzeCarColor);
 
 module.exports = router;
