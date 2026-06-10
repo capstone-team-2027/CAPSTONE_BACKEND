@@ -38,6 +38,7 @@ module.exports = {
         defaultValue: Sequelize.NOW
       }
     });
+    await queryInterface.addIndex('Vehicle_Models', ['make_id']);
   },
   async down(queryInterface, Sequelize) {
     await queryInterface.dropTable('Vehicle_Models');

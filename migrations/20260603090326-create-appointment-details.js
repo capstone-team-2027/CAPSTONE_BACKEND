@@ -18,7 +18,7 @@ module.exports = {
           key: 'id'
         },
         onUpdate: 'CASCADE',
-        onDelete: 'CASCADE'
+        onDelete: 'CASCADE' // 🔥 FIX: Đặt CASCADE. Nếu lịch hẹn bị xóa/hủy, toàn bộ chi tiết này sẽ tự động bay màu theo, tránh sinh ra "rác" trong DB.
       },
       catalog_id: {
         type: Sequelize.INTEGER,
@@ -39,10 +39,6 @@ module.exports = {
         },
         onUpdate: 'CASCADE',
         onDelete: 'SET NULL'
-      },
-      price_snapshot: {
-        type: Sequelize.DECIMAL(12, 2),
-        allowNull: false
       },
       createdAt: {
         allowNull: false,

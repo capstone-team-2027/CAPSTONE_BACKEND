@@ -21,7 +21,7 @@ module.exports = {
       },
       vehicle_id: {
         type: Sequelize.INTEGER,
-        allowNull: false,
+        allowNull: true, // 🔥 SỬA TẠI ĐÂY: Đổi thành true để hỗ trợ khách vãng lai chưa tạo thông tin xe
         references: {
           model: 'Vehicles',
           key: 'id'
@@ -29,14 +29,22 @@ module.exports = {
         onUpdate: 'CASCADE',
         onDelete: 'RESTRICT'
       },
+      booking_type: {
+        type: Sequelize.STRING(50),
+        allowNull: false, // 🔥 THÊM MỚI: Bắt buộc truyền lên là SPECIFIC hoặc CONSULTATION
+      },
       scheduled_time: {
         type: Sequelize.DATE,
         allowNull: false
       },
+      notes: {
+        type: Sequelize.TEXT,
+        allowNull: true, // 🔥 THÊM MỚI: Rất quan trọng khi booking_type là CONSULTATION (khách mô tả bệnh)
+      },
       status: {
         type: Sequelize.STRING(50),
         allowNull: false,
-        defaultValue: 'PENDING'
+        defaultValue: 'CONFIRMED'
       },
       created_at: {
         allowNull: false,
