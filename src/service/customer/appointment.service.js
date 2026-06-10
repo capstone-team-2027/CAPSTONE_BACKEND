@@ -127,7 +127,6 @@ module.exports.createAppointment = async (userId, data) => {
     try {
         let resolvedVehicleId = data.vehicle_id || null;
 
-        // Automatically resolve or create vehicle if brand, model, and plate are provided
         if (!resolvedVehicleId && data.booking_type === 'SPECIFIC' && data.vehicle_plate) {
             let make = null;
             if (data.vehicle_brand) {
