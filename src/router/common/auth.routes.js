@@ -11,5 +11,5 @@ router.post("/phone", authController.checkPhone);
 router.post("/register", authController.register);
 router.post("/refresh-token", authController.refreshToken);
 router.post("/forgot-password", authController.forgotPassword);
-
+router.get("/profile", authenticate, authController.getProfile);
 module.exports = router;
