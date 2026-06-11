@@ -3,12 +3,11 @@ const { z } = require("zod");
 const loginSchema = z.object({
   phone: z
     .string({ required_error: "Số điện thoại là bắt buộc" })
-    .min(10, "Số điện thoại phải có ít nhất 10 số")
-    .max(15, "Số điện thoại quá dài")
-    .regex(/^[0-9]+$/, "Số điện thoại chỉ được chứa ký tự số"),
+    .trim()
+    .min(1, "Số điện thoại là bắt buộc"),
   password: z
     .string({ required_error: "Mật khẩu là bắt buộc" })
-    .min(6, "Mật khẩu phải có ít nhất 6 ký tự"),
+    .min(1, "Mật khẩu là bắt buộc"),
 });
 
 const checkPhoneSchema =  z.object({

@@ -2,14 +2,28 @@ const { Op  } = require("sequelize");
 const db = require("../../../models");
 
 const SparePart = db.Spare_Parts;
-
-module.exports.createSpareParts = async (
+const InventoryLog = db.Inventory_Logs;
+/* module.exports.importSpareParts = async (
+  part_id, 
+  type, 
+  quantity,
   name,
   brand,
   cogs,
-  retail_price,
   category_id,
-  warranty_type,
+  warranty_period_months,
+  warranty_km_limit ) => {
+    const part = await this.createSpareParts(name, brand, category_id, warranty_period_months, warranty_km_limit);
+    const part_id = part.id;
+    const importLog = await InventoryLog.create({
+      part_id: part_id,
+
+    })
+}; */
+module.exports.createSpareParts = async (
+  name,
+  brand,
+  category_id,
   warranty_period_months,
   warranty_km_limit,
 ) => {
@@ -29,10 +43,7 @@ module.exports.createSpareParts = async (
     sku: sku,
     name: name,
     brand: brand,
-    cogs: cogs,
-    retail_price: retail_price,
     category_id: category_id,
-    warranty_type: warranty_type,
     warranty_period_months: warranty_period_months,
     warranty_km_limit: warranty_km_limit
   });

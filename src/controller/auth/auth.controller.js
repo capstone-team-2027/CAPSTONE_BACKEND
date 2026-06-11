@@ -6,6 +6,11 @@ module.exports.login = async (req, res) => {
   try {
     const { phone, password } = req.body;
     const validation = loginSchema.safeParse({ phone, password });
+      if (!validation.success) {
+      return res.status(400).json({
+        message: validation.error.issues[0].message,
+      });
+    }
     const result = await authService.login(phone, password);
     return res.status(200).json({
       message: "Đăng nhập thành công",
@@ -22,13 +27,18 @@ module.exports.register = async (req, res) => {
   try {
     const { fullName, phone, password, confirmPassword } = req.body;
     const validation = registerSchema.safeParse({ fullName, phone, password });
+      if (!validation.success) {
+      return res.status(400).json({
+        message: validation.error.issues[0].message,
+      });
+    }
     const result = await authService.register(
       fullName,
       phone,
       password,
       confirmPassword,
     );
-    return res.status(200).json({
+    return res.status(201).json({
       message: "Đăng kí thành công",
       data: result,
     });
@@ -39,49 +49,8 @@ module.exports.register = async (req, res) => {
   }
 };
 
-module.exports.checkPhone = async (req, res) => {
-  try {
-    const { phone } = req.body;
-    const validation = checkPhoneSchema.safeParse({ phone });
-    await authService.checkPhone(phone);
-    return res.status(200).json({
-      message: "",
-    });
-  } catch (error) {
-    return res.status(error.status || 500).json({
-      message: error.message || "Internal server error",
-    });
-  }
-};
-
-module.exports.register = async (req, res) => {
-  try {
-    const { idToken, fullName, password, confirmPassword } = req.body;
-    const validation = registerSchema.safeParse({ fullName, password });
-    if (!validation.success) {
-      return res.status(400).json({
-        message: validation.error.issues[0].message,
-      });
-    }
-    const result = await authService.register(
-      idToken,
-      fullName,
-      password,
-      confirmPassword,
-    );
-    return res.status(200).json({
-      message: "Đăng kí thành công",
-      data: result,
-    });
-  } catch (error) {
-    return res.status(error.status || 500).json({
-      message: error.message || "Internal server error",
-    });
-  }
-};
 module.exports.refreshToken = async (req, res) => {
-  const refreshToken = req.body.refreshToken; // Đã đổi tên chuẩn camelCase
-
+  const refreshToken = req.body.refreshToken; 
   try {
     const result = await authService.processRefreshToken(refreshToken);
     return res.status(200).json({
@@ -91,12 +60,10 @@ module.exports.refreshToken = async (req, res) => {
       refreshToken: result.refreshToken,
     });
   } catch (error) {
-    // Nếu Service ném ra lỗi (bắt bằng try-catch)
     console.error("Lỗi tại api refresh-token:", error.message);
-
     return res.status(401).json({
       state: 401,
-      message: "Unauthorized", // Fix chính tả "Unauthorization" -> "Unauthorized"
+      message: "Unauthorized", 
     });
   }
 };
@@ -142,7 +109,6 @@ module.exports.forgotPassword = async (req, res) => {
         message: validation.error.issues[0].message,
       });
     }
-
     const result = await authService.forgotPassword(phone, password, confirmPassword);
     return res.status(200).json({
       message: "Đặt lại mật khẩu thành công",

@@ -60,22 +60,18 @@ module.exports.login = async (phone, password) => {
         message: "Trạng thái tài khoản không hợp lệ.",
       };
   }
-
   const accessToken = jwt.sign(
     { id: user.id, roleId: user.roleId },
     process.env.ACCESS_TOKEN_KEY,
     { expiresIn: process.env.ACCESSTOKEN_ExpiresIn },
   );
-
   const refreshToken = jwt.sign(
     { id: user.id },
     process.env.REFRESH_TOKEN_KEY,
     { expiresIn: process.env.REFESHTOKEN_ExpiresIn },
   );
-
   user.refreshToken = refreshToken;
   await user.save();
-
   return {
     accessToken,
     refreshToken,
@@ -88,25 +84,6 @@ module.exports.login = async (phone, password) => {
       status: user.status,
     },
   };
-};
-
-module.exports.checkPhone = async (phone) => {
-  const normalizePhone = await normalizeVnPhone(phone);
-  if (!normalizePhone) {
-    throw {
-      status: 400,
-      message: "Số điện thoại không hợp lệ, vui lòng thử lại",
-    };
-  }
-  const user = await User.findOne({
-    where: { phoneNumber: normalizePhone },
-  });
-  if (user && user.status == "ACTIVE") {
-    throw {
-      status: 400,
-      message: "Người dùng đã tồn tại, vui lòng đăng nhập",
-    };
-  }
 };
 
 module.exports.register = async (
@@ -146,7 +123,6 @@ module.exports.register = async (
       message: "Mật khẩu xác nhận không trùng khớp",
     };
   }
-
   const existingUser = await User.findOne({
     where: { phoneNumber: normalizePhone },
   });
@@ -214,30 +190,25 @@ module.exports.forgotPassword = async (
       message: "Số điện thoại không hợp lệ, vui lòng thử lại",
     };
   }
-
   if (password !== confirmPassword) {
     throw {
       status: 400,
       message: "Mật khẩu xác nhận không trùng khớp",
     };
   }
-
   const user = await User.findOne({
     where: { phoneNumber: normalizePhone },
   });
-
   if (!user) {
     throw {
       status: 404,
       message: "Không tìm thấy tài khoản liên kết với số điện thoại này",
     };
   }
-
   const hashPassword = await bcrypt.hash(password, 10);
   user.password = hashPassword;
   user.refreshToken = null;
   await user.save();
-
   return {
     message: "Đặt lại mật khẩu thành công",
   };

@@ -1,5 +1,5 @@
 const ROLES = require("./../constants/roles.js");
-const authRoutes = require("./../router/common/auth.routes.js");
+const authRoutes = require("./../router/auth/auth.routes.js");
 const customerRoutes = require("./customer/customer.routes");
 const adminRoutes = require("../router/admin/admin.routes.js");
 const serviceRoutes = require("./common/service.routes.js");

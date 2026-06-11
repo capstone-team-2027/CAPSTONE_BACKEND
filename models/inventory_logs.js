@@ -16,7 +16,6 @@ module.exports = (sequelize, DataTypes) => {
           as: 'part'
         });
       }
-
       // 2. Một dòng log có thể liên kết
       //  tới một Lệnh sửa chữa xe (Service_Order)
       if (models.Service_Orders) {
@@ -32,6 +31,13 @@ module.exports = (sequelize, DataTypes) => {
           as: 'manager'
         });
       }
+      // 3. Một dòng log import bắt buộc thuộc 1 nhà cung cấp
+      if (models.Suppliers) {
+        this.belongsTo(models.Suppliers, {
+        foreignKey: 'supplier_id',
+        as: 'supplier'
+        });
+      }
     }
   }
   Inventory_Logs.init({
@@ -39,9 +45,13 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.INTEGER,
       allowNull: false
     },
+    supplier_id: {
+      type: DataTypes.INTEGER,
+      allowNull: true
+    },
     service_order_id: {
       type: DataTypes.INTEGER,
-      allowNull: true // Nullable khi nhập kho / cân bằng kho
+      allowNull: true 
     },
     type: {
       type: DataTypes.STRING(50),

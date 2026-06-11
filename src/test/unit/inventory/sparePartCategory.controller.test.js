@@ -1,9 +1,11 @@
 const mockCreatePartCategory = jest.fn();
 const mockGetPartCategory = jest.fn();
+const mockUpdatePartCategory = jest.fn();
 
 jest.mock("../../../service/inventory/sparePartCategory.service", () => ({
   createPartCategory: mockCreatePartCategory,
   getPartCategory: mockGetPartCategory,
+  updatePartCategory: mockUpdatePartCategory,
 }));
 
 const controller = require("../../../controller/inventory/sparePartCategory.controller");
@@ -13,14 +15,14 @@ const createMockResponse = () => {
   res.status = jest.fn().mockReturnValue(res);
   res.json = jest.fn().mockReturnValue(res);
   return res;
-}
+};
 
-  //SparePartCategory Controller 
+//SparePartCategory Controller
 describe("SparePartCategory Controller", () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
-  //createPartCategory 
+  //createPartCategory
   describe("createPartCategory", () => {
     describe("Validation", () => {
       it("should return 400 when category_name is not string", async () => {
@@ -125,6 +127,30 @@ describe("SparePartCategory Controller", () => {
         expect(res.status).toHaveBeenCalledWith(404);
         expect(res.json).toHaveBeenCalledWith({
           message: "Không tìm thấy dữ liệu",
+        });
+      });
+    });
+  });
+  // updatePartCategory
+  describe("updatePartCategory", () => {
+    describe("Error Case", () => {
+      it("should return 404 when category id is not found", async () => {
+        const error = new Error("Không tìm thấy danh mục");
+        error.status = 404;
+        mockUpdatePartCategory.mockRejectedValue(error);
+        const req = {
+          params: { id: 999 },
+          body: {
+            category_name: "Lốp xe",
+            description: "Phụ tùng lốp",
+            is_active: true,
+          },
+        };
+        const res = createMockResponse();
+        await controller.updatePartCategory(req, res);
+        expect(res.status).toHaveBeenCalledWith(404);
+        expect(res.json).toHaveBeenCalledWith({
+          message: "Không tìm thấy danh mục",
         });
       });
     });
