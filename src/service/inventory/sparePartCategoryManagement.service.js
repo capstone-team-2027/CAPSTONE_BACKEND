@@ -31,6 +31,14 @@ module.exports.updatePartCategory = async (
 };
 
 module.exports.getPartCategory = async () => {
-  const category = await PartCategory.findAll({});
+  const category = await PartCategory.findAll({
+       attributes: [
+      "id",
+      "category_name",
+      "description",
+      "code",
+      "is_active"
+    ]
+  });
   return category;
 };

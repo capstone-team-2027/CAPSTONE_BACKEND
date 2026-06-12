@@ -10,6 +10,7 @@ router.get("/part", sparePartManagementController.getSpareParts);
 router.patch("/part", sparePartManagementController.updateSparePart);
 
 router.post("/import", importAndExportManagementController.importSparePart);
+router.get("/import", importAndExportManagementController.viewImportHistory);
 
 router.get("/part-category", sparePartCategoryManagementController.getPartCategory);
 router.post("/part-category", sparePartCategoryManagementController.createPartCategory);

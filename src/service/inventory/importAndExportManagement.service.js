@@ -1,6 +1,8 @@
 const db = require("../../../models");
 const InventoryLog = db.Inventory_Logs;
 const SparePart = db.Spare_Parts;
+const Supplier = db.Suppliers;
+const User = db.User;
 const sparePartService = require("../../service/inventory/sparePartManagement.service");
 
 const normalizeName = (str) =>
@@ -131,3 +133,32 @@ module.exports.importSparePart = async (
     return { part, importLog };
   });
 };
+
+module.exports.viewImportHistory = async() => {
+  const result = await InventoryLog.findAll({
+    attributes: [
+      "id",
+      "type",
+      "quantity",
+      "unit_price"
+    ],
+    include: [
+      {
+        model: User,
+        as: "manager",
+        attributes: ["fullName"]
+      },
+      {
+        model: SparePart,
+        as: "part",
+        attributes: ["sku","name"]
+      },
+      {
+        model: Supplier,
+        as: "supplier",
+        attributes: ["name"]
+      }
+    ]
+  });
+  return result;
+}
