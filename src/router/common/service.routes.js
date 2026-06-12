@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const serviceCatalogController = require("../../controller/admin/serviceCatalog.controller..js");
+const serviceCatalogController = require("../../controller/admin/serviceCatalog.controller");
 const serviceCombosController = require("../../controller/admin/serviceCombos.controller");
 const serviceCategoriesController = require("../../controller/admin/serviceCategories.controller");
 

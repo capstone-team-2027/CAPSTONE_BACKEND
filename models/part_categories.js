@@ -31,6 +31,11 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.INTEGER,
       allowNull: true
     },
+      code: {
+      type: DataTypes.STRING(10),
+      allowNull: false,
+      unique: true
+    },
       is_active: {
       type: DataTypes.BOOLEAN,
       allowNull: false,

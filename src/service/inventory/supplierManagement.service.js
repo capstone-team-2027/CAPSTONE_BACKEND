@@ -1,7 +1,5 @@
 const { Op, where } = require("sequelize");
 const db = require("../../../models");
-const supplier = require("../../../models/supplier");
-
 const Supplier = db.Suppliers;
 
 module.exports.createSupplier = async (name, phone, address, is_active) => {

@@ -1,5 +1,5 @@
 const { createPartCategorySchema, updatePartCategorySchema } = require("../../validation/inventory/sparePartCategory.validation");
-const partCategory = require("../../service/inventory/sparePartCategory.service");
+const partCategory = require("../../service/inventory/sparePartCategoryManagement.service");
 
 module.exports.createPartCategory = async (req, res) => {
     try {

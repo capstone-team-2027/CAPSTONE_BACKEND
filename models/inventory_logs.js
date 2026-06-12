@@ -55,11 +55,15 @@ module.exports = (sequelize, DataTypes) => {
     },
     type: {
       type: DataTypes.STRING(50),
-      allowNull: false // IN, OUT, ADJUST
+      allowNull: false 
     },
     quantity: {
       type: DataTypes.INTEGER,
       allowNull: false
+    },
+    unit_price: {
+      type: DataTypes.DECIMAL(12, 2),
+      allowNull: true // giá nhập 1 đơn vị (dòng IN); cũng có thể dùng làm giá vốn lúc xuất (OUT)
     },
     manager_id: {
       type: DataTypes.INTEGER,

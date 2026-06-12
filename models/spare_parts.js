@@ -31,7 +31,7 @@ module.exports = (sequelize, DataTypes) => {
     },
     stock_quantity: {
       type: DataTypes.INTEGER,
-      allowNull: false,
+      allowNull: true,
       defaultValue: 0 // Mặc định phụ tùng mới tạo có số lượng bằng 0
     },
     min_threshold: {
@@ -41,6 +41,7 @@ module.exports = (sequelize, DataTypes) => {
     },
     cogs: {
       type: DataTypes.DECIMAL(12, 2), 
+      allowNull: true,
     },
     retail_price: {
       type: DataTypes.DECIMAL(12, 2),
