@@ -41,6 +41,10 @@ module.exports = (sequelize, DataTypes) => {
     }
   }
   Inventory_Logs.init({
+    receipt_code: {
+      type: DataTypes.STRING(50),
+      allowNull: false,
+    },
     part_id: {
       type: DataTypes.INTEGER,
       allowNull: false

@@ -1,36 +1,20 @@
 const ImportAndExportManagement = require("../../service/inventory/importAndExportManagement.service");
 const {
-  importSparePartSchema,
+  importReceiptSchema,
 } = require("../../validation/inventory/importAndExportManagement.validation");
 
 module.exports.importSparePart = async (req, res) => {
   try {
     const manager_id = res.locals.user.id;
-    const {
-      supplier_id,
-      quantity,
-      unit_price,
-      retail_price,
-      part_id,
-      name,
-      brand,
-      category_id,
-      warranty_period_months,
-      warranty_km_limit,
-    } = req.body;
-    const validation = importSparePartSchema.safeParse({
+    const { supplier_id,items } = req.body;
+      console.log(req.body);
+console.log(items);
+   const validation = importReceiptSchema.safeParse({
       manager_id,
       supplier_id,
-      quantity,
-      unit_price,
-      retail_price,
-      part_id,
-      name,
-      brand,
-      category_id,
-      warranty_period_months,
-      warranty_km_limit,
+      items,           
     });
+  
     if (!validation.success) {
        console.log(validation.error.issues);
       return res.status(400).json({
@@ -40,15 +24,7 @@ module.exports.importSparePart = async (req, res) => {
     const result = await ImportAndExportManagement.importSparePart(
       manager_id,
       supplier_id,
-      quantity,
-      unit_price,
-      retail_price,
-      part_id,
-      name,
-      brand,
-      category_id,
-      warranty_period_months,
-      warranty_km_limit,
+      items
     );
     return res.status(201).json({
       message: "Tạo phiếu nhập kho thành công",

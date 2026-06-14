@@ -1,4 +1,5 @@
 const db = require("../../../models");
+const { Op } = require("sequelize");
 const InventoryLog = db.Inventory_Logs;
 const SparePart = db.Spare_Parts;
 const Supplier = db.Suppliers;
@@ -30,107 +31,110 @@ function similarity(a, b) {
   return 1 - m[b.length][a.length] / Math.max(a.length, b.length);
 }
 
-module.exports.importSparePart = async (
-  manager_id,
-  supplier_id,
-  quantity,
-  unit_price,
-  retail_price,
-  part_id,
-  name,
-  brand,
-  category_id,
-  warranty_period_months,
-  warranty_km_limit,
-) => {
+module.exports.importSparePart = async (manager_id, supplier_id, items) => {
   return await db.sequelize.transaction(async (t) => {
-    let part;
-    if (part_id) {
-      part = await SparePart.findByPk(part_id, { transaction: t });
-      console.log("part", part)
-      if (!part) {
-        throw { status: 404, message: "Sản phẩm không tồn tại" };
-      }
-      await part.increment("stock_quantity", { by: quantity, transaction: t });
-      await part.update(
-        {
-          cogs: unit_price,
-          ...(retail_price != null && { retail_price }),
-        },
-        { transaction: t },
-      );
-    } else {
-      const normName = normalizeName(name);
-      const samePart = await SparePart.findAll({
-        where: { category_id },
-        attributes: ["id", "sku", "name", "brand"],
-        transaction: t,
-      });
-      const sameBrand = (b1, b2) =>
-        (b1 || "").trim().toLowerCase() === (b2 || "").trim().toLowerCase();
-      const exactPart = samePart.find(
-        (p) => normalizeName(p.name) === normName && sameBrand(p.brand, brand),
-      );
-      if (exactPart) {
-        throw {
-          status: 409,
-          message: "Sản phẩm đã tồn tại, vui lòng chọn sản phẩm từ danh sách",
-          part: {
-            id: exactPart.id,
-            sku: exactPart.sku,
-            name: exactPart.name,
-            brand: exactPart.brand,
-          },
-        };
-      }
-      const candidateParts = samePart
-        .map((p) => ({ p, score: similarity(normName, normalizeName(p.name)) }))
-        .filter((x) => x.score >= 0.8)
-        .sort((a, b) => b.score - a.score)
-        .slice(0, 5)
-        .map((x) => ({
-          id: x.p.id,
-          sku: x.p.sku,
-          name: x.p.name,
-          brand: x.p.brand,
-        }));
-      if (candidateParts.length) {
-        throw {
-          status: 409,
-          message: "Có sản phẩm gần giống. Kiểm tra lại trước khi tạo mới",
-          part: candidateParts,
-        };
-      }
-      part = await sparePartService.createSparePart(
+    const now = new Date();
+    const day = String(now.getDate()).padStart(2, "0");
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const year = now.getFullYear();
+    const prefix = `PN-${year}${month}${day}-`;
+
+    const last = await InventoryLog.findOne({
+      where: { receipt_code: { [Op.like]: `${prefix}%` } },
+      order: [["receipt_code", "DESC"]],
+      transaction: t,
+    });
+    let next = 1;
+    if (last && last.receipt_code) {
+      next = parseInt(last.receipt_code.slice(prefix.length), 10) + 1;
+    }
+    const receipt_code = `${prefix}${String(next).padStart(4, "0")}`;
+    const parts = [];    
+    const logsData = [];   
+    for (const item of items) {
+      const {
+        quantity,
+        unit_price,
+        retail_price,
+        part_id,
         name,
         brand,
         category_id,
         warranty_period_months,
         warranty_km_limit,
-        t,
-      );
-      await part.update(
-        {
-          cogs: unit_price,
-          retail_price: retail_price ?? 0,
-          stock_quantity: quantity,
-        },
-        { transaction: t },
-      );
-    }
-    const importLog = await InventoryLog.create(
-      {
+      } = item;
+      let part;
+      if (part_id) {
+        part = await SparePart.findByPk(part_id, { transaction: t });
+        if (!part) {
+          throw { status: 404, message: `Sản phẩm #${part_id} không tồn tại` };
+        }
+        await part.increment("stock_quantity", { by: quantity, transaction: t });
+        await part.update(
+          { cogs: unit_price, ...(retail_price != null && { retail_price }) },
+          { transaction: t },
+        );
+      } else {
+        const normName = normalizeName(name);
+        const samePart = await SparePart.findAll({
+          where: { category_id },
+          attributes: ["id", "sku", "name", "brand"],
+          transaction: t,
+        });
+        const sameBrand = (b1, b2) =>
+          (b1 || "").trim().toLowerCase() === (b2 || "").trim().toLowerCase();
+        const exactPart = samePart.find(
+          (p) => normalizeName(p.name) === normName && sameBrand(p.brand, brand),
+        );
+        if (exactPart) {
+          throw {
+            status: 409,
+            message: `Sản phẩm "${name}" đã tồn tại, vui lòng chọn từ danh sách`,
+            part: {
+              id: exactPart.id,
+              sku: exactPart.sku,
+              name: exactPart.name,
+              brand: exactPart.brand,
+            },
+          };
+        }
+        const candidateParts = samePart
+          .map((p) => ({ p, score: similarity(normName, normalizeName(p.name)) }))
+          .filter((x) => x.score >= 0.8)
+          .sort((a, b) => b.score - a.score)
+          .slice(0, 5)
+          .map((x) => ({ id: x.p.id, sku: x.p.sku, name: x.p.name, brand: x.p.brand }));
+
+        if (candidateParts.length) {
+          throw {
+            status: 409,
+            message: `Có sản phẩm gần giống "${name}". Kiểm tra lại trước khi tạo mới`,
+            part: candidateParts,
+          };
+        }
+        part = await sparePartService.createSparePart(
+          name, brand, category_id, warranty_period_months, warranty_km_limit, t,
+        );
+        await part.update(
+          { cogs: unit_price, retail_price: retail_price ?? 0, stock_quantity: quantity },
+          { transaction: t },
+        );
+      }
+      logsData.push({
+        receipt_code,
         part_id: part.id,
         supplier_id,
         type: "IN",
         quantity,
         unit_price,
         manager_id,
-      },
-      { transaction: t },
-    );
-    await part.reload({ transaction: t });
-    return { part, importLog };
+      });
+      await part.reload({ transaction: t });
+      parts.push(part);
+    }
+    const logs = await InventoryLog.bulkCreate(logsData, { transaction: t });
+    const results = parts.map((part, i) => ({ part, importLog: logs[i] }));
+    return { receipt_code, items: results };
   });
 };
 
@@ -162,3 +166,8 @@ module.exports.viewImportHistory = async() => {
   });
   return result;
 }
+
+
+
+
+// Mới có service tạo 1 phiếu cho 1 sản phẩm chứ chưa có nhiều sản phẩm ==> Mai dậy làm + connect API 

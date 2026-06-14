@@ -1,11 +1,35 @@
 const db = require("../../../models");
 const PartCategory = db.Part_Categories;
 
-module.exports.createPartCategory = async (category_name, description, is_active) => {
+module.exports.createPartCategory = async (
+  category_name,
+  description,
+  is_active,
+) => {
+  const toCode = (category_name || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/gi, "d")
+    .trim()
+    .split(/\s+/)
+    .map((w) => w[0])
+    .join("")
+    .toUpperCase();
+  if (!toCode) {
+    throw { status: 400, message: "Tên danh mục không hợp lệ" };
+  }
+  const existed = await PartCategory.findOne({ where: { code: toCode } });
+  if (existed) {
+    throw {
+      status: 409,
+      message: `Mã danh mục "${toCode}" đã tồn tại, vui lòng đổi tên danh mục`,
+    };
+  };
   const category = await PartCategory.create({
     category_name: category_name,
-    is_active: is_active,
     description: description,
+    code: toCode,
+    is_active: is_active,
   });
   return category;
 };
@@ -25,20 +49,14 @@ module.exports.updatePartCategory = async (
   await category.update({
     category_name: category_name,
     is_active: is_active,
-    description: description
+    description: description,
   });
   return category;
 };
 
 module.exports.getPartCategory = async () => {
   const category = await PartCategory.findAll({
-       attributes: [
-      "id",
-      "category_name",
-      "description",
-      "code",
-      "is_active"
-    ]
+    attributes: ["id", "category_name", "description", "code", "is_active"],
   });
   return category;
 };

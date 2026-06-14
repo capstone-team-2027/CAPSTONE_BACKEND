@@ -2,13 +2,6 @@ const { z } = require("zod");
 
 const importSparePartSchema = z
   .object({
-    supplier_id: z
-      .number({
-        required_error: "Nhà cung cấp là bắt buộc",
-        invalid_type_error: "Nhà cung cấp phải là số",
-      })
-      .int("Nhà cung cấp không hợp lệ"),
-
     quantity: z
       .number({
         required_error: "Số lượng là bắt buộc",
@@ -28,14 +21,6 @@ const importSparePartSchema = z
       .number({ invalid_type_error: "Giá bán phải là số" })
       .min(0, "Giá bán không được âm")
       .optional(),
-
-    manager_id: z
-      .number({
-        required_error: "Người nhập là bắt buộc",
-        invalid_type_error: "Người nhập phải là số",
-      })
-      .int("Người nhập không hợp lệ"),
-
     part_id: z
       .number({ invalid_type_error: "Id sản phẩm phải là số" })
       .int("Sản phẩm không hợp lệ")
@@ -88,5 +73,19 @@ const importSparePartSchema = z
       }
     }
   });
+  const importReceiptSchema = z.object({
+  supplier_id: z
+    .number({
+      required_error: "Nhà cung cấp là bắt buộc",
+      invalid_type_error: "Nhà cung cấp phải là số",
+    })
+    .int("Nhà cung cấp không hợp lệ"),
+  items: z
+    .array(importSparePartSchema)
+    .min(1, "Phiếu phải có ít nhất một mặt hàng")
+    
+    
+});
 
-module.exports = { importSparePartSchema };
+
+module.exports = { importReceiptSchema };
