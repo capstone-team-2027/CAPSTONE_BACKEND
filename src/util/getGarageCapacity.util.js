@@ -1,11 +1,11 @@
 const db = require('../../models');
 const getGarageCapacity = async () => {
   try {
-    const receptionistCount = await db.User.count({
+    const technicianCount = await db.User.count({
       include: [{
         model: db.Role,
         as: 'role',
-        where: { roleCode: 'RECEPTIONIST' }
+        where: { roleCode: 'TECHNICIAN' }
       }],
       where: {
         status: 'ACTIVE'
@@ -16,7 +16,7 @@ const getGarageCapacity = async () => {
       where: { is_active: true }
     });
 
-    const capacity = Math.min(receptionistCount, bayCount);
+    const capacity = Math.min(technicianCount, bayCount);
     console.log("cap count iss: ", capacity)
     return capacity > 0 ? capacity : 0;
   } catch (error) {

@@ -46,9 +46,22 @@ module.exports.getAppointment = async () => {
                     {
                         model: db.Service_Combo,
                         as: 'combo',
-                        attributes: ['id', 'combo_name', 'description']
+                        attributes: ['id', 'combo_name', 'description'],
+                        include: [
+                            {
+                                model: db.Service_Catalog,
+                                as: 'catalogs',
+                                attributes: ['id', 'service_name'],
+                                through: { attributes: [] }
+                            }
+                        ]
                     }
                 ]
+            },
+            {
+                model: db.Service_Orders,
+                as: 'serviceOrder',
+                attributes: ['id']
             }
         ],
         order: [['scheduled_time', 'DESC']]
@@ -104,7 +117,15 @@ module.exports.getAppointmentByKey = async (key) => {
                     {
                         model: db.Service_Combo,
                         as: 'combo',
-                        attributes: ['id', 'combo_name', 'description']
+                        attributes: ['id', 'combo_name', 'description'],
+                        include: [
+                            {
+                                model: db.Service_Catalog,
+                                as: 'catalogs',
+                                attributes: ['id', 'service_name'],
+                                through: { attributes: [] }
+                            }
+                        ]
                     }
                 ]
             }
@@ -131,4 +152,30 @@ module.exports.receiveAppointment = async (key) => {
     appointment.status = 'IN_PROGRESS';
     await appointment.save();
     return appointment;
+};
+
+module.exports.updateVehicleVin = async (appointmentId, vin_number) => {
+    const appointment = await db.Appointments.findByPk(appointmentId, {
+        include: [{ model: db.Vehicles, as: 'vehicle' }]
+    });
+
+    if (!appointment) {
+        throw { status: 404, message: "Lịch hẹn không tồn tại" };
+    }
+
+    if (!appointment.vehicle) {
+        throw { status: 404, message: "Không tìm thấy xe liên kết với lịch hẹn này" };
+    }
+    
+    // Check if vin is already used by another vehicle
+    if (vin_number) {
+        const existingVehicle = await db.Vehicles.findOne({ where: { vin_number } });
+        if (existingVehicle && existingVehicle.id !== appointment.vehicle.id) {
+            throw { status: 400, message: "Số khung này đã tồn tại trên hệ thống" };
+        }
+    }
+
+    appointment.vehicle.vin_number = vin_number;
+    await appointment.vehicle.save();
+    return appointment.vehicle;
 };

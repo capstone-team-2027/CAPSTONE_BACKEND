@@ -1,0 +1,48 @@
+'use strict';
+const { Model } = require('sequelize');
+
+module.exports = (sequelize, DataTypes) => {
+  class Task extends Model {
+    static associate(models) {
+      if (models.Service_Orders) {
+        Task.belongsTo(models.Service_Orders, { foreignKey: 'service_order_id', as: 'serviceOrder' });
+      }
+      if (models.Service_Catalog) {
+        Task.belongsTo(models.Service_Catalog, { foreignKey: 'service_catalog_id', as: 'catalog' });
+      }
+      if (models.Task_Assignment) {
+        Task.hasMany(models.Task_Assignment, { foreignKey: 'task_id', as: 'assignments' });
+      }
+    }
+  }
+
+  Task.init({
+    service_order_id: {
+      type: DataTypes.INTEGER,
+      allowNull: false
+    },
+    quotation_item_id: {
+      type: DataTypes.INTEGER,
+      allowNull: true
+    },
+    service_catalog_id: {
+      type: DataTypes.INTEGER,
+      allowNull: true
+    },
+    status: {
+      type: DataTypes.STRING(50),
+      allowNull: false,
+      defaultValue: 'PENDING',
+      validate: {
+        isIn: [['PENDING', 'IN_PROGRESS', 'COMPLETED']]
+      }
+    }
+  }, {
+    sequelize,
+    modelName: 'Task',
+    tableName: 'Tasks',
+    timestamps: true
+  });
+
+  return Task;
+};

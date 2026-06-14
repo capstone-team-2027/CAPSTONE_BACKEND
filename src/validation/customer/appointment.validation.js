@@ -41,6 +41,8 @@ const createAppointmentSchema = z.object({
     )
     .optional()
     .nullable(),
+  service_ids: z.array(z.number().int()).optional().nullable(),
+  combo_ids: z.array(z.number().int()).optional().nullable(),
   vehicle_brand: z.string().optional().nullable(),
   vehicle_model: z.string().optional().nullable(),
   vehicle_plate: z.string().optional().nullable(),

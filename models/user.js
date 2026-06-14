@@ -34,6 +34,12 @@ module.exports = (sequelize, DataTypes) => {
           as: 'receptionistOrders'
         });
       }
+      if (models.Notification) {
+        User.hasMany(models.Notification, {
+          foreignKey: 'recipientId',
+          as: 'notifications'
+        });
+      }
 
 
       // 1-n : hasMany
