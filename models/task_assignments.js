@@ -1,0 +1,86 @@
+'use strict';
+const { Model } = require('sequelize');
+
+module.exports = (sequelize, DataTypes) => {
+  class Task_Assignment extends Model {
+    static associate(models) {
+      if (models.Task) {
+        Task_Assignment.belongsTo(models.Task, { foreignKey: 'task_id', as: 'task' });
+      }
+      if (models.User) {
+        Task_Assignment.belongsTo(models.User, { foreignKey: 'technician_id', as: 'technician' });
+        Task_Assignment.belongsTo(models.User, { foreignKey: 'approved_by', as: 'approver' });
+      }
+      if (models.Service_Bay) {
+        Task_Assignment.belongsTo(models.Service_Bay, { foreignKey: 'bay_id', as: 'bay' });
+      }
+    }
+  }
+
+  Task_Assignment.init({
+    task_id: {
+      type: DataTypes.INTEGER,
+      allowNull: false
+    },
+    technician_id: {
+      type: DataTypes.INTEGER,
+      allowNull: false
+    },
+    staff_shift_id: {
+      type: DataTypes.INTEGER,
+      allowNull: true
+    },
+    bay_id: {
+      type: DataTypes.INTEGER,
+      allowNull: true
+    },
+    role_in_task: {
+      type: DataTypes.STRING(50),
+      allowNull: false,
+      defaultValue: 'LEAD',
+      validate: {
+        isIn: [['LEAD', 'ASSISTANT']]
+      }
+    },
+    contribution_percent: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 100,
+      validate: {
+        min: 0,
+        max: 100
+      }
+    },
+    actual_start_time: {
+      type: DataTypes.DATE,
+      allowNull: true
+    },
+    actual_end_time: {
+      type: DataTypes.DATE,
+      allowNull: true
+    },
+    status: {
+      type: DataTypes.STRING(50),
+      allowNull: false,
+      defaultValue: 'ASSIGNED',
+      validate: {
+        isIn: [['ASSIGNED', 'IN_PROGRESS', 'PAUSED', 'PENDING_QC', 'COMPLETED']]
+      }
+    },
+    approved_by: {
+      type: DataTypes.INTEGER,
+      allowNull: true
+    },
+    remarks: {
+      type: DataTypes.TEXT,
+      allowNull: true
+    }
+  }, {
+    sequelize,
+    modelName: 'Task_Assignment',
+    tableName: 'Task_Assignments',
+    timestamps: true
+  });
+
+  return Task_Assignment;
+};
