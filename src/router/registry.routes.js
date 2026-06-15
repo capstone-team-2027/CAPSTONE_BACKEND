@@ -1,21 +1,12 @@
 const ROLES = require("./../constants/roles.js");
 const authRoutes = require("./../router/common/auth.routes.js");
 const customerRoutes = require("./customer/customer.routes");
+const adminRoutes = require("../router/admin/admin.routes.js");
+const guestRoutes = require("./common/guest.routes.js");
+const inventoryRoutes = require("../router/inventory/inventory.routes.js");
 const checkClient = require("../middleware/auth.middleware.js");
-const adminServiceCombosRoutes = require("./admin/admin.routes.js");
-
+const receptionistRoutes = require("./../router/receptionist/receptionist.routes.js")
 module.exports = [
-  // {
-  //   prefix: "/api/customer/check",
-  //   middlewares:
-  //     [
-  //       checkClient.checkaccount,
-  //       checkClient.checkRole(ROLES.CUSTOMER),
-  // ❌ KHÔNG có checkRole → mọi role đều vào được
-  //     ],
-  //   router: clientcheck
-  // },
-
   {
     prefix: "/api/auth/",
     router: authRoutes,
@@ -34,6 +25,27 @@ module.exports = [
       checkClient.authenticate,
       checkClient.authorizeRoles(ROLES.ADMIN),
     ],
-    router: adminServiceCombosRoutes,
+    router: adminRoutes,
+  },
+  {
+    prefix: "/api/guest",
+    router: guestRoutes,
+  },
+
+  {
+    prefix: "/api/inventory",
+    middlewares: [
+      checkClient.authenticate,
+      checkClient.authorizeRoles(ROLES.ADMIN),
+    ],
+    router: inventoryRoutes,
+  },
+  {
+    prefix: "/api/receptionist",
+    middlewares: [
+      checkClient.authenticate,
+      checkClient.authorizeRoles(ROLES.RECEPTIONIST),
+    ],
+    router: receptionistRoutes,
   },
 ];

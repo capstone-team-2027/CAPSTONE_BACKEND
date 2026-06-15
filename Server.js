@@ -6,9 +6,21 @@ const bodyParser = require("body-parser");
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 var cors = require("cors");
+// cấu hình socket 
+const http = require("http");
+const server = http.createServer(app);
+const { Server } = require("socket.io");
+const io = new Server(server, {
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST"],
+  },
+});
+// biến global
+global._io = io; // gọi biến toàn cục
 const ROUTES = require("./src/router/registry.routes");
 const whitelist = ["http://localhost:3000", "http://localhost:5173"];
-
+require("./src/jobs/pricingRule.job");
 app.use(
   cors({
     origin(origin, callback) {
@@ -30,6 +42,6 @@ ROUTES.forEach((route) => {
   }
 });
 
-app.listen(port, () => {
+server.listen(port, () => {
   console.log(`Example app listening on port ${port}`);
 });

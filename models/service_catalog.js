@@ -14,6 +14,12 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: 'category_id',
         as: 'category'
       });
+      this.belongsToMany(models.Service_Combo, {
+        through: models.Service_Combo_Catalogs,
+        foreignKey: 'catalog_id',
+        otherKey: 'combo_id',
+        as: 'combos'
+      });
     }
   }
   Service_Catalog.init({
@@ -25,10 +31,20 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.STRING(255),
       allowNull: false // Tên dịch vụ mẫu không được để trống
     },
+    description: {
+      type: DataTypes.TEXT,
+      allowNull: true,        // cho phép trống
+      defaultValue: ""
+    },
     estimated_duration: {
       type: DataTypes.INTEGER,
       allowNull: false,
       defaultValue: 30 // Đơn vị: Phút. Mặc định là 30 phút nếu không nhập
+    },
+    is_active: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false
     }
   }, {
     sequelize,

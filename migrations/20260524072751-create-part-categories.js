@@ -13,26 +13,10 @@ module.exports = {
         type: Sequelize.STRING(100),
         allowNull: false
       },
-      //Trường này được tạo ra để phục vụ bài toán Danh mục đa cấp (Cha - Con).
-      parent_id: {
-        type: Sequelize.INTEGER,
-        allowNull: true,
-        references: {
-          model: 'Part_Categories',
-          key: 'id'
-        },
-        onUpdate: 'CASCADE',
-        onDelete: 'SET NULL'
-      },
-      pricing_rule_id: {
-        type: Sequelize.INTEGER,
-        allowNull: true,
-        references: {
-          model: 'Pricing_Rules',
-          key: 'id'
-        },
-        onUpdate: 'CASCADE',
-        onDelete: 'SET NULL'
+       is_active: {
+        type: Sequelize.BOOLEAN,
+        allowNull: false,
+        defaultValue: true // Mặc định tạo xong danh mục sẽ ở trạng thái kích hoạt ngay
       },
       createdAt: {
         allowNull: false,

@@ -5,7 +5,11 @@ module.exports.listServiceCategories = async (req, res) => {
   try {
     const result = viewCategorySchema.safeParse(req.query);
     if (!result.success) {
+<<<<<<< HEAD
       const errors = result.error.issues.map((e) => ({
+=======
+      const errors = result.error.errors.map((e) => ({
+>>>>>>> d9912cd8ba2bd6ca139bf02f2b0a00e2565d3d54
         field: e.path.join("."),
         message: e.message,
       }));
@@ -26,7 +30,11 @@ module.exports.createServiceCategories = async (req, res) => {
   try {
     const result = createCategorySchema.safeParse(req.body);
     if (!result.success) {
+<<<<<<< HEAD
       const errors = result.error.issues.map((e) => ({
+=======
+      const errors = result.error.errors.map((e) => ({
+>>>>>>> d9912cd8ba2bd6ca139bf02f2b0a00e2565d3d54
         field: e.path.join("."),
         message: e.message,
       }));
@@ -55,7 +63,11 @@ module.exports.updateServiceCategories = async (req, res) => {
 
     const result = updateCategorySchema.safeParse(req.body);
     if (!result.success) {
+<<<<<<< HEAD
       const errors = result.error.issues.map((e) => ({
+=======
+      const errors = result.error.errors.map((e) => ({
+>>>>>>> d9912cd8ba2bd6ca139bf02f2b0a00e2565d3d54
         field: e.path.join("."),
         message: e.message,
       }));

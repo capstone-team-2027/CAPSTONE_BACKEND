@@ -33,6 +33,13 @@ module.exports = (sequelize, DataTypes) => {
         as: 'bay'
       });
 
+      // 5. Lệnh sửa chữa có thể bao gồm nhiều Tasks
+      if (models.Task) {
+        this.hasMany(models.Task, {
+          foreignKey: 'service_order_id',
+          as: 'tasks'
+        });
+      }
     }
   }
   Service_Orders.init({

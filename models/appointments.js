@@ -21,17 +21,19 @@ module.exports = (sequelize, DataTypes) => {
         as: 'vehicle'
       });
 
-      // 3. Một lịch hẹn đăng ký một nhóm Danh mục dịch vụ (Service_Category)
-      this.belongsTo(models.Service_Categories, {
-        foreignKey: 'category_id',
-        as: 'category'
-      });
-
       // 4. Mối quan hệ 1-1: Khi xe đến xưởng, lịch hẹn này sẽ sinh ra tối đa 1 Lệnh sửa chữa (Service_Order)
       if (models.Service_Orders) {
         this.hasOne(models.Service_Orders, {
           foreignKey: 'appointment_id',
           as: 'serviceOrder'
+        });
+      }
+
+      // 5. Một lịch hẹn có nhiều chi tiết lịch hẹn (Appointment_Details)
+      if (models.Appointment_Details) {
+        this.hasMany(models.Appointment_Details, {
+          foreignKey: 'appointment_id',
+          as: 'appointmentDetails'
         });
       }
     }
@@ -43,30 +45,32 @@ module.exports = (sequelize, DataTypes) => {
     },
     vehicle_id: {
       type: DataTypes.INTEGER,
-      allowNull: false // FIX: Khóa ngoại không được phép để trống
+      allowNull: true // FIX: Cho phép null để hỗ trợ khách vãng lai chưa tạo thông tin xe
+    },
+    booking_type: {
+      type: DataTypes.STRING(50),
+      allowNull: false
     },
     scheduled_time: {
       type: DataTypes.DATE,
       allowNull: false // FIX: Ngày giờ hẹn bắt buộc phải có
     },
-    category_id: {
-      type: DataTypes.INTEGER,
-      allowNull: false // FIX: Nhóm dịch vụ mong muốn bắt buộc phải chọn
-    },
     notes: {
       type: DataTypes.TEXT,
-      allowNull: true // Cho phép null nếu khách không có yêu cầu đặc biệt
+      allowNull: true
     },
     status: {
       type: DataTypes.STRING(50),
       allowNull: false,
-      defaultValue: 'PENDING' // FIX: Mặc định tạo lịch xong sẽ ở trạng thái PENDING
+      defaultValue: 'CONFIRMED' // FIX: Mặc định tạo lịch xong sẽ ở trạng thái CONFIRMED
     }
   }, {
     sequelize,
     modelName: 'Appointments',
     tableName: 'Appointments',
-    timestamps: true
+    timestamps: true,
+    createdAt: 'created_at',
+    updatedAt: 'updatedAt'
   });
   return Appointments;
 };

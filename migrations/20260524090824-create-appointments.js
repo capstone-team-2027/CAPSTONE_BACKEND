@@ -11,48 +11,42 @@ module.exports = {
       },
       customer_id: {
         type: Sequelize.INTEGER,
-        allowNull: false, // Bắt buộc phải biết lịch hẹn này của khách hàng nào
-        references: {     // THIẾT LẬP KHÓA NGOẠI
-          model: 'Customers', // Tên bảng đích trong DB
-          key: 'id'
-        },
-        onUpdate: 'CASCADE',
-        onDelete: 'RESTRICT' // Không cho phép xóa khách hàng nếu họ đang có lịch hẹn
-      },
-      vehicle_id: {
-        type: Sequelize.INTEGER,
-        allowNull: false, // Bắt buộc phải biết khách định mang xe nào tới để chuẩn bị vật tư
-        references: {     // THIẾT LẬP KHÓA NGOẠI
-          model: 'Vehicles',
-          key: 'id'
-        },
-        onUpdate: 'CASCADE',
-        onDelete: 'RESTRICT' // Không cho phép xóa xe nếu xe đang có lịch hẹn trên hệ thống
-      },
-      scheduled_time: {
-        type: Sequelize.DATE, // Sequelize.DATE tương ứng với TIMESTAMP trong PostgreSQL
-        allowNull: false      // Ngày giờ hẹn bắt buộc phải nhập
-      },
-      category_id: {
-        type: Sequelize.INTEGER,
-        allowNull: false, // Bắt buộc chọn nhóm dịch vụ để sắp xếp cầu nâng phù hợp
-        references: {     // THIẾT LẬP KHÓA NGOẠI
-          model: 'Service_Categories',
+        allowNull: false,
+        references: {
+          model: 'Customers',
           key: 'id'
         },
         onUpdate: 'CASCADE',
         onDelete: 'RESTRICT'
       },
+      vehicle_id: {
+        type: Sequelize.INTEGER,
+        allowNull: true, // 🔥 SỬA TẠI ĐÂY: Đổi thành true để hỗ trợ khách vãng lai chưa tạo thông tin xe
+        references: {
+          model: 'Vehicles',
+          key: 'id'
+        },
+        onUpdate: 'CASCADE',
+        onDelete: 'RESTRICT'
+      },
+      booking_type: {
+        type: Sequelize.STRING(50),
+        allowNull: false, // 🔥 THÊM MỚI: Bắt buộc truyền lên là SPECIFIC hoặc CONSULTATION
+      },
+      scheduled_time: {
+        type: Sequelize.DATE,
+        allowNull: false
+      },
       notes: {
         type: Sequelize.TEXT,
-        allowNull: true // Khách có thể ghi chú hoặc không
+        allowNull: true, // 🔥 THÊM MỚI: Rất quan trọng khi booking_type là CONSULTATION (khách mô tả bệnh)
       },
       status: {
         type: Sequelize.STRING(50),
         allowNull: false,
-        defaultValue: 'PENDING' // Mặc định khi vừa đặt lịch thành công là PENDING (Chờ xác nhận)
+        defaultValue: 'CONFIRMED'
       },
-      createdAt: {
+      created_at: {
         allowNull: false,
         type: Sequelize.DATE,
         defaultValue: Sequelize.NOW

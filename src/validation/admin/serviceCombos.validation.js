@@ -1,66 +1,31 @@
 const { z } = require("zod");
 
-const toPositiveInt = z.preprocess((v) => {
-  if (v === undefined || v === null || v === "") return v;
-  const n = Number(v);
-  return Number.isFinite(n) ? n : v;
-}, z.number().int().positive());
-
-const toPageInt = z.preprocess((v) => {
-  if (v === undefined || v === null || v === "") return undefined;
-  const n = Number(v);
-  return Number.isFinite(n) ? n : v;
-}, z.number().int().min(1).default(1));
-
-const toLimitInt = z.preprocess((v) => {
-  if (v === undefined || v === null || v === "") return undefined;
-  const n = Number(v);
-  return Number.isFinite(n) ? n : v;
-}, z.number().int().min(1).max(100).default(20));
-
-const boolQuery = z.enum(["true", "false"]).transform((v) => v === "true");
-
-const viewCombosQuerySchema = z.object({
-  page: toPageInt.optional(),
-  limit: toLimitInt.optional(),
-  q: z
-    .string()
-    .trim()
-    .optional()
-    .transform((v) => (v && v.length ? v : undefined)),
-  is_active: boolQuery.optional(),
-  include_services: boolQuery.optional().default(true),
+const createServiceComboSchema = z.object({
+  combo_name: z
+    .string({ required_error: "Tên combo là bắt buộc" })
+    .min(2, "Tên combo phải có ít nhất 2 ký tự")
+    .max(255, "Tên combo quá dài"),
+  description: z.string().optional(),
+  serviceCatalogIds: z
+    .array(z.number({ invalid_type_error: "Danh sách dịch vụ không hợp lệ" }))
+    .min(2, "Phải chọn ít nhất 2 dịch vụ")
+    .nonempty("Danh sách dịch vụ không được để trống"),
+  is_active: z.boolean().optional(),
 });
 
-const createComboSchema = z.object({
-  category_name: z
-    .string({ required_error: "category_name is required" })
-    .trim()
-    .min(1, "category_name cannot be empty")
-    .max(100, "category_name max length is 100"),
-  is_active: z.boolean().optional().default(true),
-  service_ids: z
-    .array(toPositiveInt)
-    .optional()
-    .default([])
-    .transform((arr) => [...new Set(arr)]),
+const updateServiceComboSchema = z.object({
+  combo_name: z
+    .string({ required_error: "Tên combo là bắt buộc" })
+    .min(2, "Tên combo phải có ít nhất 2 ký tự")
+    .max(255, "Tên combo quá dài"),
+  description: z.string().optional(),
+  serviceCatalogIds: z
+    .array(z.number({ invalid_type_error: "Danh sách dịch vụ không hợp lệ" }))
+    .min(1, "Phải chọn ít nhất 1 dịch vụ"),
+  is_active: z.boolean({ required_error: "Trạng thái combo là bắt buộc" }),
 });
-
-const updateComboSchema = z
-  .object({
-    category_name: z.string().trim().min(1).max(100).optional(),
-    is_active: z.boolean().optional(),
-    service_ids: z
-      .array(toPositiveInt)
-      .optional()
-      .transform((arr) => [...new Set(arr)]),
-  })
-  .refine((obj) => Object.keys(obj).length > 0, {
-    message: "body must have at least one field to update",
-  });
 
 module.exports = {
-  viewCombosQuerySchema,
-  createComboSchema,
-  updateComboSchema,
+  createServiceComboSchema,
+  updateServiceComboSchema,
 };

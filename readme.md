@@ -27,7 +27,7 @@ Bước 3: Các câu lệnh quản lý Database (CLI)
    npx sequelize-cli seed:generate --name [tên_seeder] : Tạo mới một file seeder để định nghĩa dữ liệu mẫu.
 
 Bước 4: Truy vấn dữ liệu (Query):
-Cách 1: Sử dụng SQL Thuần (Raw Query)
+Cách 1: Sử dụng SQL Thuần (Raw Query)npx sequelize-cli db:migrate:undo --name 20260603090000-add-is-active.js
 const { QueryTypes } = require('sequelize');
 
 const users = await sequelize.query(

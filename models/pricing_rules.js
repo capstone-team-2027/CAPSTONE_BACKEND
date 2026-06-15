@@ -10,6 +10,10 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: 'pricing_rule_id',
         as: 'categories'
       });
+      this.hasMany(models.Service_Combo_Catalogs, {
+        foreignKey: 'pricing_rule_id',
+        as: 'comboCatalogs'
+      });
     }
   }
   Pricing_Rules.init({
@@ -39,7 +43,12 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.BOOLEAN,
       allowNull: false,
       defaultValue: true // Mặc định luật này được bật
-    }
+    },
+    is_deleted: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false
+    },
   }, {
     sequelize,
     modelName: 'Pricing_Rules',
