@@ -17,6 +17,23 @@ module.exports.getConfigurations = async (req, res) => {
     }
 };
 
+module.exports.getAvailability = async (req, res) => {
+    try {
+        const date = req.query.date;
+        const result = await configService.getAvailability(date);
+        return res.status(200).json({
+            success: true,
+            message: "Lấy thông tin ca làm việc và sức chứa thành công",
+            data: result
+        });
+    } catch (error) {
+        return res.status(error.status || 500).json({
+            success: false,
+            message: error.message || "Internal server error"
+        });
+    }
+};
+
 module.exports.getConfigurationByKey = async (req, res) => {
     try {
         const validation = getConfigurationByKeySchema.safeParse(req.params);
@@ -41,18 +58,4 @@ module.exports.getConfigurationByKey = async (req, res) => {
     }
 };
 
-module.exports.getShifts = async (req, res) => {
-    try {
-        const result = await configService.getShifts();
-        return res.status(200).json({
-            success: true,
-            message: "Lấy danh sách ca làm việc thành công",
-            data: result
-        });
-    } catch (error) {
-        return res.status(error.status || 500).json({
-            success: false,
-            message: error.message || "Internal server error"
-        });
-    }
-};
+

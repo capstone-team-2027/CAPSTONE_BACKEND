@@ -19,7 +19,9 @@ router.post("/vehicle_model", vehicleModelController.getVehicleModel);
 
 //garage-configurations
 router.get("/garage-configurations", configController.getConfigurations);
-router.get("/garage-configurations/shifts", configController.getShifts); // Đặt trước route :key để tránh trùng khớp
 router.get("/garage-configurations/:key", configController.getConfigurationByKey);
+
+// availability
+router.get("/availability", configController.getAvailability);
 
 module.exports = router;

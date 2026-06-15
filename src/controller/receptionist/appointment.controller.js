@@ -83,7 +83,7 @@ module.exports.updateVehicleVin = async (req, res) => {
 
         const { key } = req.params;
         const { vin_number } = req.body;
-        
+
         const validation = updateVehicleVinSchema.safeParse({ key, vin_number });
         if (!validation.success) {
             return res.status(400).json({
@@ -105,3 +105,26 @@ module.exports.updateVehicleVin = async (req, res) => {
         });
     }
 };
+
+module.exports.checkVehicleInfo = async (req, res) => {
+    try {
+        const requestUser = res.locals.user;
+        if (!requestUser) {
+            return res.status(401).json({ message: "Unauthorized" });
+        }
+
+        const { key } = req.params;
+        const result = await appointmentService.checkVehicleInfo(key);
+        return res.status(200).json({
+            success: true,
+            message: "Kiểm tra thông tin xe thành công",
+            data: result
+        });
+    } catch (error) {
+        return res.status(error.status || 500).json({
+            success: false,
+            message: error.message || "Internal server error"
+        });
+    }
+};
+

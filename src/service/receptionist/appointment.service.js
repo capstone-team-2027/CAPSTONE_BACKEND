@@ -6,7 +6,7 @@ module.exports.getAppointment = async () => {
             {
                 model: db.Customers,
                 as: 'customer',
-                attributes: ['id', 'phone', 'membership_tier'],
+                attributes: ['id', 'name', 'phone', 'membership_tier'],
                 include: [
                     {
                         model: db.User,
@@ -77,7 +77,7 @@ module.exports.getAppointmentByKey = async (key) => {
             {
                 model: db.Customers,
                 as: 'customer',
-                attributes: ['id', 'phone', 'membership_tier'],
+                attributes: ['id', 'name', 'phone', 'membership_tier'],
                 include: [
                     {
                         model: db.User,
@@ -166,7 +166,7 @@ module.exports.updateVehicleVin = async (appointmentId, vin_number) => {
     if (!appointment.vehicle) {
         throw { status: 404, message: "Không tìm thấy xe liên kết với lịch hẹn này" };
     }
-    
+
     // Check if vin is already used by another vehicle
     if (vin_number) {
         const existingVehicle = await db.Vehicles.findOne({ where: { vin_number } });
@@ -179,3 +179,33 @@ module.exports.updateVehicleVin = async (appointmentId, vin_number) => {
     await appointment.vehicle.save();
     return appointment.vehicle;
 };
+
+module.exports.checkVehicleInfo = async (appointmentId) => {
+    const appointment = await db.Appointments.findByPk(appointmentId, {
+        include: [{ model: db.Vehicles, as: 'vehicle' }]
+    });
+
+    if (!appointment) {
+        throw { status: 404, message: "Lịch hẹn không tồn tại" };
+    }
+
+    if (!appointment.vehicle) {
+        throw { status: 404, message: "Không tìm thấy xe liên kết với lịch hẹn này" };
+    }
+
+    // Tìm Service Order mới nhất của xe này để lấy số ODO
+    const latestServiceOrder = await db.Service_Orders.findOne({
+        where: { vehicle_id: appointment.vehicle.id },
+        order: [['createdAt', 'DESC']]
+    });
+
+    const last_odo = latestServiceOrder ? latestServiceOrder.current_odo : 0;
+
+    return {
+        has_vin: !!appointment.vehicle.vin_number,
+        vin_number: appointment.vehicle.vin_number || null,
+        has_odo: last_odo > 0,
+        last_odo: last_odo
+    };
+};
+
