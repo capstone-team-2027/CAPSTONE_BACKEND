@@ -39,10 +39,6 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: false,
       defaultValue: 5 // Mặc định dưới 5 món sẽ kích hoạt cảnh báo sắp hết hàng
     },
-    cogs: {
-      type: DataTypes.DECIMAL(12, 2), 
-      allowNull: true,
-    },
     retail_price: {
       type: DataTypes.DECIMAL(12, 2),
       allowNull: true,

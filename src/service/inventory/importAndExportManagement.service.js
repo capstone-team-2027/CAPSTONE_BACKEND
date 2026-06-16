@@ -1,6 +1,7 @@
 const db = require("../../../models");
 const { Op } = require("sequelize");
 const InventoryLog = db.Inventory_Logs;
+const InventoryBatch = db.Inventory_Batches;
 const SparePart = db.Spare_Parts;
 const Supplier = db.Suppliers;
 const User = db.User;
@@ -38,19 +39,22 @@ module.exports.importSparePart = async (manager_id, supplier_id, items) => {
     const month = String(now.getMonth() + 1).padStart(2, "0");
     const year = now.getFullYear();
     const prefix = `PN-${year}${month}${day}-`;
-
     const last = await InventoryLog.findOne({
-      where: { receipt_code: { [Op.like]: `${prefix}%` } },
+      where: {
+        receipt_code: {
+          [Op.like]: `${prefix}%`,
+        },
+      },
       order: [["receipt_code", "DESC"]],
       transaction: t,
     });
     let next = 1;
-    if (last && last.receipt_code) {
+    if (last?.receipt_code) {
       next = parseInt(last.receipt_code.slice(prefix.length), 10) + 1;
     }
     const receipt_code = `${prefix}${String(next).padStart(4, "0")}`;
-    const parts = [];    
-    const logsData = [];   
+    const parts = [];
+    const logsData = [];
     for (const item of items) {
       const {
         quantity,
@@ -62,29 +66,47 @@ module.exports.importSparePart = async (manager_id, supplier_id, items) => {
         category_id,
         warranty_period_months,
         warranty_km_limit,
+        force,
       } = item;
       let part;
       if (part_id) {
-        part = await SparePart.findByPk(part_id, { transaction: t });
+        part = await SparePart.findByPk(part_id, {
+          transaction: t,
+        });
         if (!part) {
-          throw { status: 404, message: `Sản phẩm #${part_id} không tồn tại` };
+          throw {
+            status: 404,
+            message: `Sản phẩm #${part_id} không tồn tại`,
+          };
         }
-        await part.increment("stock_quantity", { by: quantity, transaction: t });
-        await part.update(
-          { cogs: unit_price, ...(retail_price != null && { retail_price }) },
-          { transaction: t },
-        );
+        await part.increment("stock_quantity", {
+          by: quantity,
+          transaction: t,
+        });
+        if (retail_price != null) {
+          await part.update(
+            {
+              retail_price,
+            },
+            {
+              transaction: t,
+            },
+          );
+        }
       } else {
         const normName = normalizeName(name);
         const samePart = await SparePart.findAll({
-          where: { category_id },
+          where: {
+            category_id,
+          },
           attributes: ["id", "sku", "name", "brand"],
           transaction: t,
         });
         const sameBrand = (b1, b2) =>
           (b1 || "").trim().toLowerCase() === (b2 || "").trim().toLowerCase();
         const exactPart = samePart.find(
-          (p) => normalizeName(p.name) === normName && sameBrand(p.brand, brand),
+          (p) =>
+            normalizeName(p.name) === normName && sameBrand(p.brand, brand),
         );
         if (exactPart) {
           throw {
@@ -99,13 +121,20 @@ module.exports.importSparePart = async (manager_id, supplier_id, items) => {
           };
         }
         const candidateParts = samePart
-          .map((p) => ({ p, score: similarity(normName, normalizeName(p.name)) }))
+          .map((p) => ({
+            p,
+            score: similarity(normName, normalizeName(p.name)),
+          }))
           .filter((x) => x.score >= 0.8)
           .sort((a, b) => b.score - a.score)
           .slice(0, 5)
-          .map((x) => ({ id: x.p.id, sku: x.p.sku, name: x.p.name, brand: x.p.brand }));
-
-        if (candidateParts.length) {
+          .map((x) => ({
+            id: x.p.id,
+            sku: x.p.sku,
+            name: x.p.name,
+            brand: x.p.brand,
+          }));
+        if (!force && candidateParts.length) {
           throw {
             status: 409,
             message: `Có sản phẩm gần giống "${name}". Kiểm tra lại trước khi tạo mới`,
@@ -113,11 +142,21 @@ module.exports.importSparePart = async (manager_id, supplier_id, items) => {
           };
         }
         part = await sparePartService.createSparePart(
-          name, brand, category_id, warranty_period_months, warranty_km_limit, t,
+          name,
+          brand,
+          category_id,
+          warranty_period_months,
+          warranty_km_limit,
+          t,
         );
         await part.update(
-          { cogs: unit_price, retail_price: retail_price ?? 0, stock_quantity: quantity },
-          { transaction: t },
+          {
+            stock_quantity: quantity,
+            retail_price: retail_price ?? 0,
+          },
+          {
+            transaction: t,
+          },
         );
       }
       logsData.push({
@@ -129,45 +168,61 @@ module.exports.importSparePart = async (manager_id, supplier_id, items) => {
         unit_price,
         manager_id,
       });
-      await part.reload({ transaction: t });
+      await part.reload({
+        transaction: t,
+      });
       parts.push(part);
     }
-    const logs = await InventoryLog.bulkCreate(logsData, { transaction: t });
-    const results = parts.map((part, i) => ({ part, importLog: logs[i] }));
-    return { receipt_code, items: results };
+    const logs = await InventoryLog.bulkCreate(logsData, {
+      transaction: t,
+      returning: true,
+    });
+    const batchData = logs.map((log, index) => ({
+      inventory_log_id: log.id,
+      unit_cost: items[index].unit_price,
+      remaining_quantity: items[index].quantity,
+    }));
+    await InventoryBatch.bulkCreate(batchData, {
+      transaction: t,
+    });
+    const results = parts.map((part, index) => ({
+      part,
+      importLog: logs[index],
+    }));
+    return {
+      receipt_code,
+      items: results,
+    };
   });
 };
 
-module.exports.viewImportHistory = async() => {
+module.exports.viewImportHistory = async () => {
   const result = await InventoryLog.findAll({
     attributes: [
       "id",
+      "receipt_code",
+      "createdAt",
       "type",
       "quantity",
-      "unit_price"
+      "unit_price",
     ],
     include: [
       {
         model: User,
         as: "manager",
-        attributes: ["fullName"]
+        attributes: ["fullName"],
       },
       {
         model: SparePart,
         as: "part",
-        attributes: ["sku","name"]
+        attributes: ["sku", "name"],
       },
       {
         model: Supplier,
         as: "supplier",
-        attributes: ["name"]
-      }
-    ]
+        attributes: ["name"],
+      },
+    ],
   });
   return result;
-}
-
-
-
-
-// Mới có service tạo 1 phiếu cho 1 sản phẩm chứ chưa có nhiều sản phẩm ==> Mai dậy làm + connect API 
+};

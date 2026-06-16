@@ -10,34 +10,30 @@ module.exports = (sequelize, DataTypes) => {
      * The `models/index` file will call this method automatically.
      */
     static associate(models) {
-      if (models.Spare_Parts) {
         this.belongsTo(models.Spare_Parts, {
           foreignKey: 'part_id',
           as: 'part'
         });
-      }
       // 2. Một dòng log có thể liên kết
       //  tới một Lệnh sửa chữa xe (Service_Order)
-      if (models.Service_Orders) {
         this.belongsTo(models.Service_Orders, {
           foreignKey: 'service_order_id',
           as: 'serviceOrder'
         });
-      }
       // 3. Một dòng log bắt buộc phải được thực hiện bởi một Nhân viên/Thủ kho (User)
-      if (models.User) {
         this.belongsTo(models.User, {
           foreignKey: 'manager_id',
           as: 'manager'
         });
-      }
       // 3. Một dòng log import bắt buộc thuộc 1 nhà cung cấp
-      if (models.Suppliers) {
         this.belongsTo(models.Suppliers, {
         foreignKey: 'supplier_id',
         as: 'supplier'
         });
-      }
+        this.hasOne(models.Inventory_Batches, {
+        foreignKey: 'inventory_log_id',
+        as: 'batch'
+        });
     }
   }
   Inventory_Logs.init({
@@ -67,7 +63,7 @@ module.exports = (sequelize, DataTypes) => {
     },
     unit_price: {
       type: DataTypes.DECIMAL(12, 2),
-      allowNull: true // giá nhập 1 đơn vị (dòng IN); cũng có thể dùng làm giá vốn lúc xuất (OUT)
+      allowNull: true // Giá nhập trên mỗi đơn vị đối với giao dịch IN
     },
     manager_id: {
       type: DataTypes.INTEGER,

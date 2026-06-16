@@ -1,7 +1,6 @@
 const mockCreatePartCategory = jest.fn();
 const mockGetPartCategory = jest.fn();
 const mockUpdatePartCategory = jest.fn();
-
 jest.mock("../../../service/inventory/sparePartCategory.service", () => ({
   createPartCategory: mockCreatePartCategory,
   getPartCategory: mockGetPartCategory,

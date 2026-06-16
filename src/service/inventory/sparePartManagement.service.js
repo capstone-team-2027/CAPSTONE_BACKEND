@@ -1,6 +1,7 @@
 const { Op } = require("sequelize");
 const db = require("../../../models");
 const SparePart = db.Spare_Parts;
+const PartCategory = db.Part_Categories;
 
 module.exports.createSparePart = async (
   name,
@@ -51,12 +52,12 @@ module.exports.getSpareParts = async () => {
   const part = await SparePart.findAll({
     attributes: [
       "id",
+      "sku",
       "name",
       "brand",
+      "stock_quantity",
       "cogs",
       "retail_price",
-      "category_id",
-      "warranty_type",
       "warranty_km_limit",
       "warranty_period_months",
     ],
@@ -64,7 +65,7 @@ module.exports.getSpareParts = async () => {
       {
         model: PartCategory, 
         as: "category",
-        attributes: ["category_name"],
+        attributes: ["id","category_name"],
       },
     ],
   });
