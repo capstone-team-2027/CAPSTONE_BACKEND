@@ -74,10 +74,7 @@ module.exports.updateSparePart = async (
   id,
   name,
   brand,
-  cogs,
   retail_price,
-  category_id,
-  warranty_type,
   warranty_period_months,
   warranty_km_limit,
 ) => {
@@ -90,10 +87,7 @@ module.exports.updateSparePart = async (
   const updatePart = await part.update({
     name: name,
     brand: brand,
-    cogs: cogs,
     retail_price: retail_price,
-    category_id: category_id,
-    warranty_type: warranty_type,
     warranty_period_months: warranty_period_months,
     warranty_km_limit: warranty_km_limit,
   });

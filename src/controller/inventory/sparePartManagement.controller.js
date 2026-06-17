@@ -16,23 +16,19 @@ module.exports.getSpareParts = async (req, res) => {
     });
   }
 };
-
 module.exports.updateSparePart = async (req, res) => {
   try {
     const { id } = req.params;
     const {
       name,
       brand,
-      cogs,
       retail_price,
-      warranty_type,
       warranty_period_months,
       warranty_km_limit,
     } = req.body;
     const validation = updateSparePart.safeParse({
       name,
       brand,
-      cogs,
       retail_price,
     });
     if (!validation.success) {
@@ -44,9 +40,7 @@ module.exports.updateSparePart = async (req, res) => {
       id,
       name,
       brand,
-      cogs,
       retail_price,
-      warranty_type,
       warranty_period_months,
       warranty_km_limit,
     );

@@ -7,7 +7,7 @@ const supplierManagementController = require("../../controller/inventory/supplie
 const importAndExportManagementController = require("../../controller/inventory/importAndExportManagement.controller");
 
 router.get("/part", sparePartManagementController.getSpareParts);
-router.patch("/part", sparePartManagementController.updateSparePart);
+router.patch("/part/:id", sparePartManagementController.updateSparePart);
 
 router.post("/import", importAndExportManagementController.importSparePart);
 router.get("/import", importAndExportManagementController.viewImportHistory);
