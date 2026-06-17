@@ -11,8 +11,8 @@ module.exports = (sequelize, DataTypes) => {
         Task_Assignment.belongsTo(models.User, { foreignKey: 'technician_id', as: 'technician' });
         Task_Assignment.belongsTo(models.User, { foreignKey: 'approved_by', as: 'approver' });
       }
-      if (models.Service_Bay) {
-        Task_Assignment.belongsTo(models.Service_Bay, { foreignKey: 'bay_id', as: 'bay' });
+      if (models.Service_Bays) {
+        Task_Assignment.belongsTo(models.Service_Bays, { foreignKey: 'bay_id', as: 'bay' });
       }
     }
   }
