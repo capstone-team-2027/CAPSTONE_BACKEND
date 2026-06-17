@@ -198,6 +198,9 @@ module.exports.importSparePart = async (manager_id, supplier_id, items) => {
 
 module.exports.viewImportHistory = async () => {
   const result = await InventoryLog.findAll({
+    where: {
+      type: "IN",
+    },
     attributes: [
       "id",
       "receipt_code",
@@ -223,6 +226,7 @@ module.exports.viewImportHistory = async () => {
         attributes: ["name"],
       },
     ],
+    order: [["createdAt", "DESC"]],
   });
   return result;
 };

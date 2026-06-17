@@ -56,7 +56,6 @@ module.exports.getSpareParts = async () => {
       "name",
       "brand",
       "stock_quantity",
-      "cogs",
       "retail_price",
       "warranty_km_limit",
       "warranty_period_months",
