@@ -6,6 +6,7 @@ const guestRoutes = require("./common/guest.routes.js");
 const inventoryRoutes = require("../router/inventory/inventory.routes.js");
 const checkClient = require("../middleware/auth.middleware.js");
 const receptionistRoutes = require("./../router/receptionist/receptionist.routes.js")
+const technicianRoutes = require("./../router/technician/technician.routes.js")
 module.exports = [
   {
     prefix: "/api/auth/",
@@ -47,5 +48,13 @@ module.exports = [
       checkClient.authorizeRoles(ROLES.RECEPTIONIST),
     ],
     router: receptionistRoutes,
+  },
+  {
+    prefix: "/api/technician",
+    middlewares: [
+      checkClient.authenticate,
+      checkClient.authorizeRoles(ROLES.TECHNICIAN),
+    ],
+    router: technicianRoutes,
   },
 ];
