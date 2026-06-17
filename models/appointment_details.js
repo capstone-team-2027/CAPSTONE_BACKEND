@@ -11,16 +11,16 @@ module.exports = (sequelize, DataTypes) => {
       });
 
       // 2. Một chi tiết lịch hẹn có thể thuộc về một Dịch vụ lẻ (Service_Catalog)
-      if (models.Service_Catalogs) {
-        this.belongsTo(models.Service_Catalogs, {
+      if (models.Service_Catalog) {
+        this.belongsTo(models.Service_Catalog, {
           foreignKey: 'catalog_id',
           as: 'catalog'
         });
       }
 
       // 3. Một chi tiết lịch hẹn có thể thuộc về một Combo dịch vụ (Service_Combo)
-      if (models.Service_Combos) {
-        this.belongsTo(models.Service_Combos, {
+      if (models.Service_Combo) {
+        this.belongsTo(models.Service_Combo, {
           foreignKey: 'combo_id',
           as: 'combo'
         });
@@ -40,10 +40,6 @@ module.exports = (sequelize, DataTypes) => {
     combo_id: {
       type: DataTypes.INTEGER,
       allowNull: true
-    },
-    price_snapshot: {
-      type: DataTypes.DECIMAL(12, 2),
-      allowNull: false
     }
   }, {
     sequelize,

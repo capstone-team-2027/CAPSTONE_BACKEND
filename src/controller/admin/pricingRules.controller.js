@@ -1,7 +1,6 @@
-const db = require("../../../models");
-/** @type {import("sequelize").ModelStatic<import("sequelize").Model>} */
-const Pricing_Rule = db.Pricing_Rules;
+const PricingRulesService = require("../../service/admin/pricingRules.service");
 const { createPricingRuleSchema, updatePricingRuleSchema } = require("./../../validation/admin/pricingRule.validator")
+
 module.exports.createPricingRules = async (req, res) => {
     try {
         const parsed = createPricingRuleSchema.safeParse(req.body);
@@ -16,14 +15,8 @@ module.exports.createPricingRules = async (req, res) => {
             });
             return null;
         }
-        const { category, markup_rate, discount_rate, start_date, end_date } = parsed.data;
-        const pricingRule = await Pricing_Rule.create({
-            category,
-            markup_rate,
-            discount_rate,
-            start_date: start_date ?? null,
-            end_date: end_date ?? null,
-        });
+
+        const pricingRule = await PricingRulesService.createPricingRule(parsed.data);
         return res.status(201).json({
             success: true,
             message: 'Pricing rule created successfully',
@@ -38,13 +31,11 @@ module.exports.createPricingRules = async (req, res) => {
         });
     }
 }
+
 // view 
 module.exports.getAllPricingRules = async (req, res) => {
     try {
-        const rules = await Pricing_Rule.findAll({
-            where: { is_deleted: false },
-            order: [['id', 'DESC']],
-        });
+        const rules = await PricingRulesService.getAllPricingRules();
 
         return res.status(200).json({
             success: true,
@@ -60,14 +51,13 @@ module.exports.getAllPricingRules = async (req, res) => {
         });
     }
 };
+
 // get id to update 
 module.exports.getPricingRuleById = async (req, res) => {
     try {
         const { id } = req.params;
 
-        const rule = await Pricing_Rule.findOne({
-            where: { id, is_active: true },
-        });
+        const rule = await PricingRulesService.getPricingRuleById(id);
 
         if (!rule) {
             return res.status(404).json({
@@ -90,6 +80,7 @@ module.exports.getPricingRuleById = async (req, res) => {
         });
     }
 };
+
 module.exports.updatePricingRule = async (req, res) => {
     try {
         const { id } = req.params;
@@ -107,9 +98,7 @@ module.exports.updatePricingRule = async (req, res) => {
             });
         }
 
-        const rule = await Pricing_Rule.findOne({
-            where: { id, is_deleted: false },
-        });
+        const rule = await PricingRulesService.updatePricingRule(id, parsed.data);
 
         if (!rule) {
             return res.status(404).json({
@@ -117,8 +106,6 @@ module.exports.updatePricingRule = async (req, res) => {
                 message: 'Không tìm thấy quy tắc giá',
             });
         }
-
-        await rule.update(parsed.data);
 
         return res.status(200).json({
             success: true,
@@ -134,13 +121,12 @@ module.exports.updatePricingRule = async (req, res) => {
         });
     }
 };
+
 module.exports.deletePricingRule = async (req, res) => {
     try {
         const { id } = req.params;
 
-        const rule = await Pricing_Rule.findOne({
-            where: { id, is_deleted: false },
-        });
+        const rule = await PricingRulesService.deletePricingRule(id);
 
         if (!rule) {
             return res.status(404).json({
@@ -148,8 +134,6 @@ module.exports.deletePricingRule = async (req, res) => {
                 message: 'Không tìm thấy quy tắc giá hoặc đã bị xóa',
             });
         }
-
-        await rule.update({ is_deleted: true });
 
         return res.status(200).json({
             success: true,

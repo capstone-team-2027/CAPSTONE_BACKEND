@@ -3,24 +3,28 @@
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up(queryInterface, Sequelize) {
-    await queryInterface.createTable('Appointment_Details', {
+    await queryInterface.createTable('Tasks', {
       id: {
         allowNull: false,
         autoIncrement: true,
         primaryKey: true,
         type: Sequelize.INTEGER
       },
-      appointment_id: {
+      service_order_id: {
         type: Sequelize.INTEGER,
         allowNull: false,
         references: {
-          model: 'Appointments',
+          model: 'Service_Orders',
           key: 'id'
         },
         onUpdate: 'CASCADE',
-        onDelete: 'CASCADE' // 🔥 FIX: Đặt CASCADE. Nếu lịch hẹn bị xóa/hủy, toàn bộ chi tiết này sẽ tự động bay màu theo, tránh sinh ra "rác" trong DB.
+        onDelete: 'CASCADE'
       },
-      catalog_id: {
+      quotation_item_id: {
+        type: Sequelize.INTEGER,
+        allowNull: true
+      },
+      service_catalog_id: {
         type: Sequelize.INTEGER,
         allowNull: true,
         references: {
@@ -30,30 +34,29 @@ module.exports = {
         onUpdate: 'CASCADE',
         onDelete: 'SET NULL'
       },
-      combo_id: {
-        type: Sequelize.INTEGER,
-        allowNull: true,
-        references: {
-          model: 'Service_Combos',
-          key: 'id'
-        },
-        onUpdate: 'CASCADE',
-        onDelete: 'SET NULL'
+      status: {
+        type: Sequelize.STRING(50),
+        allowNull: false,
+        defaultValue: 'PENDING'
       },
       createdAt: {
         allowNull: false,
         type: Sequelize.DATE,
-        defaultValue: Sequelize.NOW
+        defaultValue: Sequelize.literal('CURRENT_TIMESTAMP')
       },
       updatedAt: {
         allowNull: false,
         type: Sequelize.DATE,
-        defaultValue: Sequelize.NOW
+        defaultValue: Sequelize.literal('CURRENT_TIMESTAMP')
       }
+    });
+
+    await queryInterface.addIndex('Tasks', ['service_order_id'], {
+      name: 'idx_tasks_service_order'
     });
   },
 
   async down(queryInterface, Sequelize) {
-    await queryInterface.dropTable('Appointment_Details');
+    await queryInterface.dropTable('Tasks');
   }
 };
