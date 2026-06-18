@@ -5,13 +5,19 @@ const adminRoutes = require("../router/admin/admin.routes.js");
 const guestRoutes = require("./common/guest.routes.js");
 const inventoryRoutes = require("../router/inventory/inventory.routes.js");
 const checkClient = require("../middleware/auth.middleware.js");
-const receptionistRoutes = require("./../router/receptionist/receptionist.routes.js")
-const technicianRoutes = require("./../router/technician/technician.routes.js")
+const receptionistRoutes = require("./../router/receptionist/receptionist.routes.js");
+const technicianRoutes = require("./../router/technician/technician.routes.js");
+
 module.exports = [
   {
     prefix: "/api/auth/",
     router: authRoutes,
   },
+  {
+    prefix: "/api/guest",
+    router: guestRoutes,
+  },
+
   {
     prefix: "/api/customer",
     middlewares: [
@@ -29,15 +35,10 @@ module.exports = [
     router: adminRoutes,
   },
   {
-    prefix: "/api/guest",
-    router: guestRoutes,
-  },
-
-  {
     prefix: "/api/inventory",
     middlewares: [
       checkClient.authenticate,
-      checkClient.authorizeRoles(ROLES.ADMIN),
+      checkClient.authorizeRoles(ROLES.INVENTORY_MANAGER),
     ],
     router: inventoryRoutes,
   },
