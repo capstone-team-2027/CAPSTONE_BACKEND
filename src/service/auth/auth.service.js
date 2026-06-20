@@ -7,6 +7,10 @@ const bcrypt = require("bcrypt");
 const { normalizeVnPhone } = require("../../util/phone.util");
 const { where } = require("sequelize");
 const admin = require("../../config/firebase.config");
+const {
+  generateAccessToken,
+  generateRefreshToken,
+} = require("../../util/jwt.util");
 
 module.exports.login = async (phone, password) => {
   const user = await User.findOne({
@@ -40,7 +44,8 @@ module.exports.login = async (phone, password) => {
     case "PENDING":
       throw {
         status: 403,
-        message: "Tài khoản chưa được kích hoạt. Vui lòng liên hệ quản trị viên.",
+        message:
+          "Tài khoản chưa được kích hoạt. Vui lòng liên hệ quản trị viên.",
       };
     case "INACTIVE":
       throw {
@@ -60,16 +65,8 @@ module.exports.login = async (phone, password) => {
         message: "Trạng thái tài khoản không hợp lệ.",
       };
   }
-  const accessToken = jwt.sign(
-    { id: user.id, roleId: user.roleId },
-    process.env.ACCESS_TOKEN_KEY,
-    { expiresIn: process.env.ACCESSTOKEN_ExpiresIn },
-  );
-  const refreshToken = jwt.sign(
-    { id: user.id },
-    process.env.REFRESH_TOKEN_KEY,
-    { expiresIn: process.env.REFESHTOKEN_ExpiresIn },
-  );
+  const accessToken = generateAccessToken(user);
+  const refreshToken = generateRefreshToken(user);
   user.refreshToken = refreshToken;
   await user.save();
   return {
@@ -79,6 +76,53 @@ module.exports.login = async (phone, password) => {
       id: user.id,
       fullName: user.fullName,
       phoneNumber: user.phoneNumber,
+      role: user.role?.roleCode,
+      avatar: user.avatar,
+      status: user.status,
+    },
+  };
+};
+
+module.exports.loginWithGoogle = async (profile) => {
+  const googleId = profile.id;
+  const email = profile.emails?.[0]?.value;
+  const fullName = profile.displayName;
+  const avatar = profile.photos?.[0]?.value || "";
+  let user = await User.findOne({
+    where: { googleId },
+    include: [{ model: db.Role, as: "role" }],
+  });
+  if (!user) {
+    const customerRole = await db.Role.findOne({
+      where: { roleCode: "CUSTOMER" },
+    });
+
+    const created = await User.create({
+      googleId,
+      email,
+      fullName,
+      avatar,
+      roleId: customerRole.id,
+      status: "ACTIVE",
+    });
+
+    user = await User.findOne({
+      where: { id: created.id },
+      include: [{ model: db.Role, as: "role" }],
+    });
+  }
+  const accessToken = generateAccessToken(user);
+  const refreshToken = generateRefreshToken(user);
+  user.refreshToken = refreshToken;
+  await user.save();
+  return {
+    accessToken,
+    refreshToken,
+    user: {
+      id: user.id,
+      fullName: user.fullName,
+      phoneNumber: user.phoneNumber,
+      email: user.email,
       role: user.role?.roleCode,
       avatar: user.avatar,
       status: user.status,
@@ -166,7 +210,7 @@ module.exports.processRefreshToken = async (refreshToken) => {
       { userId: currentUser.id },
       process.env.ACCESS_TOKEN_KEY,
       {
-        expiresIn: process.env.ACCESSTOKEN_ExpiresIn || "1h",
+        expiresIn: process.env.ACCESS_TOKEN_EXPIRES_IN || "1h",
       },
     );
     return {
@@ -178,11 +222,7 @@ module.exports.processRefreshToken = async (refreshToken) => {
   }
 };
 
-module.exports.forgotPassword = async (
-  phone,
-  password,
-  confirmPassword
-) => {
+module.exports.forgotPassword = async (phone, password, confirmPassword) => {
   const normalizePhone = await normalizeVnPhone(phone);
   if (!normalizePhone) {
     throw {
@@ -213,5 +253,3 @@ module.exports.forgotPassword = async (
     message: "Đặt lại mật khẩu thành công",
   };
 };
-
-

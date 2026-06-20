@@ -3,10 +3,16 @@ require("dotenv").config();
 const app = express();
 const port = process.env.PORT || 3000;
 const bodyParser = require("body-parser");
+const passport = require("passport");
+const configureGoogle = require("../CAPSTONE_BACKEND/src/config/google.config");
+
+configureGoogle(passport);
+app.use(passport.initialize());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
+
 var cors = require("cors");
-// cấu hình socket 
+// cấu hình socket
 const http = require("http");
 const server = http.createServer(app);
 const { Server } = require("socket.io");
@@ -31,7 +37,7 @@ app.use(
       }
     },
     credentials: true,
-  })
+  }),
 );
 // cách router để có thể hoạt động được
 ROUTES.forEach((route) => {
