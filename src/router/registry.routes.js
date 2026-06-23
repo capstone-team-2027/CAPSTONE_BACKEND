@@ -54,7 +54,7 @@ module.exports = [
     prefix: "/api/technician",
     middlewares: [
       checkClient.authenticate,
-      checkClient.authorizeRoles(ROLES.TECHNICIAN),
+      checkClient.authorizeRoles(ROLES.ADMIN),
     ],
     router: technicianRoutes,
   },

@@ -3,6 +3,11 @@ const express = require("express");
 const router = express.Router();
 const taskAssignment = require("./../../controller/technician/taskAssignment.controller");
 const notificationController = require("./../../controller/technician/notification.controller");
+const quoteManagementController = require("./../../controller/technician/quoteManagement.controller");
+
+
+router.post("/quote", quoteManagementController.createQuotation);
+
 
 router.get("/task-assignments", taskAssignment.getTaskAssignment);
 router.get("/service-orders/:id", taskAssignment.getServiceOrderDetail);
