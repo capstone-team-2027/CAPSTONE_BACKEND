@@ -9,6 +9,8 @@ module.exports.createQuotation = async (data) => {
     let totalAmount = 0;
     const detailsData = [];
     for (const item of data.items) {
+      let unitPrice = 0;
+
       if (item.service_catalog_id) {
         const catalog = await ServiceCatalog.findByPk(item.service_catalog_id, {
           transaction: t,
@@ -19,6 +21,7 @@ module.exports.createQuotation = async (data) => {
             message: `Dịch vụ #${item.service_catalog_id} không tồn tại`,
           };
         }
+        unitPrice = catalog.labor_price;
       }
       if (item.spare_part_id) {
         const part = await SparePart.findByPk(item.spare_part_id, {
@@ -30,14 +33,15 @@ module.exports.createQuotation = async (data) => {
             message: `Phụ tùng #${item.spare_part_id} không tồn tại`,
           };
         }
+        unitPrice = part.retail_price;
       }
-      const amount = item.quantity * item.unit_price;
+      const amount = item.quantity * unitPrice;
       totalAmount += amount;
       detailsData.push({
         service_catalog_id: item.service_catalog_id || null,
         spare_part_id: item.spare_part_id || null,
         quantity: item.quantity,
-        unit_price: item.unit_price,
+        unit_price: unitPrice,
         amount,
       });
     }
@@ -76,8 +80,10 @@ module.exports.updateQuotation = async (id, data) => {
       transaction: t,
     });
     let totalAmount = 0;
+    let unitPrice = 0;
     const detailsData = [];
     for (const item of data.items) {
+      let unitPrice = 0;
       if (item.service_catalog_id) {
         const catalog = await ServiceCatalog.findByPk(item.service_catalog_id, {
           transaction: t,
@@ -88,6 +94,7 @@ module.exports.updateQuotation = async (id, data) => {
             message: `Dịch vụ #${item.service_catalog_id} không tồn tại`,
           };
         }
+        unitPrice = catalog.labor_price;
       }
       if (item.spare_part_id) {
         const part = await SparePart.findByPk(item.spare_part_id, {
@@ -99,15 +106,16 @@ module.exports.updateQuotation = async (id, data) => {
             message: `Phụ tùng #${item.spare_part_id} không tồn tại`,
           };
         }
+        unitPrice = part.retail_price;
       }
-      const amount = item.quantity * item.unit_price;
+      const amount = item.quantity * unitPrice;
       totalAmount += amount;
       detailsData.push({
         quotation_id: quotation.id,
         service_catalog_id: item.service_catalog_id || null,
         spare_part_id: item.spare_part_id || null,
         quantity: item.quantity,
-        unit_price: item.unit_price,
+        unit_price: unitPrice,
         amount,
       });
     }
@@ -117,8 +125,8 @@ module.exports.updateQuotation = async (id, data) => {
         total_amount: totalAmount,
         note: data.note !== undefined ? data.note : quotation.note,
       },
-      { transaction: t }
-    )
+      { transaction: t },
+    );
     return quotation;
   });
 };
