@@ -8,10 +8,7 @@ const createSparePart = z.object({
     .number({ invalid_type_error: "Tỉ lệ giảm giá phải là số" })         
     .min(0, "Số lượng không được âm")
     .optional(),
-  cogs: z
-    .number({ required_error: "Giá gốc là bắt buộc" })
-    .min(0, "Số lượng không được âm")
-    .optional(),
+
   retail_price: z
     .number({ required_error: "Giá bán ra là bắt buộc" })
     .min(0, "Số lượng không được âm")
@@ -23,10 +20,6 @@ const createSparePart = z.object({
 const updateSparePart = z.object({
   name: z.string({ invalid_type_error: "Tên phải là chuỗi" }).optional(),
   brand: z.string({ invalid_type_error: "Thương hiệu phải là chuỗi" }).optional(),
-  cogs: z
-    .number({ invalid_type_error: "Giá gốc phải là số" })
-    .min(0, "Giá gốc không được âm")
-    .optional(),
   retail_price: z
     .number({ invalid_type_error: "Giá bán ra phải là số" })
     .min(0, "Giá bán ra không được âm")

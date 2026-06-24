@@ -45,16 +45,24 @@ module.exports = (sequelize, DataTypes) => {
     },
     vehicle_id: {
       type: DataTypes.INTEGER,
-      allowNull: false // FIX: Khóa ngoại không được phép để trống
+      allowNull: true // FIX: Cho phép null để hỗ trợ khách vãng lai chưa tạo thông tin xe
+    },
+    booking_type: {
+      type: DataTypes.STRING(50),
+      allowNull: false
     },
     scheduled_time: {
       type: DataTypes.DATE,
       allowNull: false // FIX: Ngày giờ hẹn bắt buộc phải có
     },
+    notes: {
+      type: DataTypes.TEXT,
+      allowNull: true
+    },
     status: {
       type: DataTypes.STRING(50),
       allowNull: false,
-      defaultValue: 'PENDING' // FIX: Mặc định tạo lịch xong sẽ ở trạng thái PENDING
+      defaultValue: 'CONFIRMED' // FIX: Mặc định tạo lịch xong sẽ ở trạng thái CONFIRMED
     }
   }, {
     sequelize,
@@ -62,7 +70,7 @@ module.exports = (sequelize, DataTypes) => {
     tableName: 'Appointments',
     timestamps: true,
     createdAt: 'created_at',
-    updatedAt: false
+    updatedAt: 'updatedAt'
   });
   return Appointments;
 };

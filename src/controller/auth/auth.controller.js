@@ -1,5 +1,6 @@
 const { loginSchema, registerSchema, checkPhoneSchema, forgotPasswordSchema } = require("./../../validation/auth/auth.validation");
 const authService = require("./../../service/auth/auth.service");
+const profileService = require("../../service/customer/profile.service");
 const { da } = require("zod/v4/locales");
 
 module.exports.login = async (req, res) => {
@@ -20,6 +21,24 @@ module.exports.login = async (req, res) => {
     return res.status(error.status || 500).json({
       message: error.message || "Internal server error",
     });
+  }
+};
+exports.googleCallback = async (req, res) => {
+  try {
+    const profile = req.user; 
+    const result = await authService.loginWithGoogle(profile);
+
+    const userParam = encodeURIComponent(JSON.stringify(result.user));
+
+    res.redirect(
+      `${process.env.FRONTEND_URL}/oauth-success` +
+        `?accessToken=${result.accessToken}` +
+        `&refreshToken=${result.refreshToken}` +
+        `&user=${userParam}`
+    );
+  } catch (error) {
+    console.error("Google login error:", error);
+    res.redirect(`${process.env.FRONTEND_URL}/login?error=google_failed`);
   }
 };
 
@@ -112,6 +131,24 @@ module.exports.forgotPassword = async (req, res) => {
     const result = await authService.forgotPassword(phone, password, confirmPassword);
     return res.status(200).json({
       message: "Đặt lại mật khẩu thành công",
+      data: result,
+    });
+  } catch (error) {
+    return res.status(error.status || 500).json({
+      message: error.message || "Internal server error",
+    });
+  }
+};
+
+module.exports.getProfile = async (req, res) => {
+  try {
+    const requestUser = res.locals.user;
+    if (!requestUser) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    const result = await profileService.getProfile(requestUser.id);
+    return res.status(200).json({
+      message: "Get profile success",
       data: result,
     });
   } catch (error) {

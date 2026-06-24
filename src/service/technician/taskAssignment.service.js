@@ -1,0 +1,331 @@
+const db = require("../../../models");
+
+module.exports.getTaskAssignment = async (technicianId) => {
+    const serviceOrders = await db.Service_Orders.findAll({
+        include: [
+            {
+                model: db.Vehicles,
+                as: 'vehicle',
+                attributes: ['id', 'license_plate', 'vin_number'],
+                include: [
+                    {
+                        model: db.Vehicle_Models,
+                        as: 'model',
+                        attributes: ['id', 'model_name'],
+                        include: [
+                            {
+                                model: db.Vehicle_Makes,
+                                as: 'make',
+                                attributes: ['id', 'make_name']
+                            }
+                        ]
+                    },
+                    {
+                        model: db.Customers,
+                        as: 'customer',
+                        attributes: ['id', 'name', 'phone'],
+                        include: [
+                            {
+                                model: db.User,
+                                as: 'user',
+                                attributes: ['fullName', 'phoneNumber']
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                model: db.User,
+                as: 'receptionist',
+                attributes: ['id', 'fullName']
+            },
+            {
+                model: db.Service_Bays,
+                as: 'bay',
+                attributes: ['id', 'bay_name']
+            },
+            {
+                model: db.Appointments,
+                as: 'appointment',
+                attributes: ['id', 'booking_type', 'scheduled_time']
+            },
+            {
+                model: db.Task,
+                as: 'tasks',
+                required: true, // Chỉ lấy Service Order có Task
+                include: [
+                    {
+                        model: db.Task_Assignment,
+                        as: 'assignments',
+                        required: technicianId ? true : false, // Bắt buộc phải có assignment nếu có lọc theo technicianId
+                        where: technicianId ? { technician_id: technicianId } : undefined, // Lọc theo Kỹ thuật viên
+                        include: [
+                            {
+                                model: db.User,
+                                as: 'technician',
+                                attributes: ['id', 'fullName']
+                            }
+                        ]
+                    },
+                    {
+                        model: db.Service_Catalog,
+                        as: 'catalog',
+                        attributes: ['id', 'service_name', 'estimated_duration']
+                    }
+                ]
+            }
+        ],
+        order: [['createdAt', 'DESC']]
+    });
+
+    return serviceOrders;
+};
+
+module.exports.getServiceOrderDetail = async (serviceOrderId, technicianId) => {
+    const serviceOrder = await db.Service_Orders.findOne({
+        where: { id: serviceOrderId },
+        include: [
+            {
+                model: db.Vehicles,
+                as: 'vehicle',
+                attributes: ['id', 'license_plate', 'vin_number'],
+                include: [
+                    {
+                        model: db.Vehicle_Models,
+                        as: 'model',
+                        attributes: ['id', 'model_name'],
+                        include: [
+                            {
+                                model: db.Vehicle_Makes,
+                                as: 'make',
+                                attributes: ['id', 'make_name']
+                            }
+                        ]
+                    },
+                    {
+                        model: db.Customers,
+                        as: 'customer',
+                        attributes: ['id', 'name', 'phone'],
+                        include: [
+                            {
+                                model: db.User,
+                                as: 'user',
+                                attributes: ['fullName', 'phoneNumber']
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                model: db.User,
+                as: 'receptionist',
+                attributes: ['id', 'fullName']
+            },
+            {
+                model: db.Service_Bays,
+                as: 'bay',
+                attributes: ['id', 'bay_name']
+            },
+            {
+                model: db.Appointments,
+                as: 'appointment',
+                attributes: ['id', 'booking_type', 'scheduled_time', 'status', 'notes']
+            },
+            {
+                model: db.Task,
+                as: 'tasks',
+                include: [
+                    {
+                        model: db.Task_Assignment,
+                        as: 'assignments',
+                        // Lấy tất cả phân công để thợ có thể xem đồng nghiệp làm cùng
+                        include: [
+                            {
+                                model: db.User,
+                                as: 'technician',
+                                attributes: ['id', 'fullName']
+                            }
+                        ]
+                    },
+                    {
+                        model: db.Service_Catalog,
+                        as: 'catalog',
+                        attributes: ['id', 'service_name', 'estimated_duration']
+                    }
+                ]
+            }
+        ]
+    });
+
+    if (!serviceOrder) {
+        throw { status: 404, message: "Không tìm thấy chi tiết Lệnh sửa chữa" };
+    }
+
+    return serviceOrder;
+};
+
+module.exports.startTask = async (taskAssignmentId, technicianId) => {
+    // 1. Tìm assignment gốc để lấy thông tin Service Order và Appointment
+    const assignment = await db.Task_Assignment.findOne({
+        where: { id: taskAssignmentId, technician_id: technicianId },
+        include: [
+            {
+                model: db.Task,
+                as: 'task',
+                include: [
+                    {
+                        model: db.Service_Orders,
+                        as: 'serviceOrder',
+                        include: [
+                            {
+                                model: db.Appointments,
+                                as: 'appointment',
+                                attributes: ['id', 'status', 'booking_type']
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    });
+
+    if (!assignment) {
+        throw { status: 404, message: "Không tìm thấy phân công công việc hoặc bạn không có quyền thực hiện." };
+    }
+
+    const appointment = assignment.task?.serviceOrder?.appointment;
+    if (!appointment) {
+        throw { status: 400, message: "Không tìm thấy lịch hẹn liên kết với phân công này." };
+    }
+
+    if (appointment.status !== 'WALK_IN' && appointment.booking_type !== 'WALK_IN') {
+        throw { status: 403, message: "Chỉ được phép bắt đầu công việc đối với những Lịch hẹn có trạng thái là WALK_IN." };
+    }
+
+    const serviceOrderId = assignment.task.service_order_id;
+    const serviceOrder = assignment.task.serviceOrder;
+
+    // 2. Tìm TẤT CẢ phân công của Kỹ thuật viên này trong CÙNG 1 Service Order
+    const allAssignments = await db.Task_Assignment.findAll({
+        where: { technician_id: technicianId },
+        include: [
+            {
+                model: db.Task,
+                as: 'task',
+                where: { service_order_id: serviceOrderId }
+            }
+        ]
+    });
+
+    // 3. Cập nhật tất cả các assignment và task tương ứng
+    for (const asg of allAssignments) {
+        if (asg.status !== 'IN_PROGRESS' && asg.status !== 'COMPLETED') {
+            const task = asg.task;
+
+            // Đếm số lượng người làm chung Task này
+            const totalAssignments = await db.Task_Assignment.count({
+                where: { task_id: task.id }
+            });
+
+            if (totalAssignments <= 1) {
+                // Chỉ có 1 người làm
+                task.status = 'IN_PROGRESS';
+                await task.save();
+            } else {
+                // Có nhiều người làm
+                if (asg.role_in_task === 'LEAD') {
+                    task.status = 'IN_PROGRESS';
+                    await task.save();
+                } else {
+                    // Nếu là thợ phụ, chỉ start assignment, task giữ nguyên trừ khi task đã IN_PROGRESS
+                    if (task.status !== 'IN_PROGRESS') {
+                        throw {
+                            status: 403,
+                            message: `Nhiệm vụ ID ${task.id} có nhiều Kỹ thuật viên. Bạn chỉ được bắt đầu sau khi Thợ chính (LEAD) đã bắt đầu.`
+                        };
+                    }
+                }
+            }
+
+            asg.status = 'IN_PROGRESS';
+            if (!asg.actual_start_time) {
+                asg.actual_start_time = new Date();
+            }
+            await asg.save();
+        }
+    }
+
+    // 4. Cập nhật trạng thái Lệnh sửa chữa (Service Order)
+    if (serviceOrder && serviceOrder.status !== 'IN_PROGRESS') {
+        serviceOrder.status = 'IN_PROGRESS';
+        await serviceOrder.save();
+    }
+
+    return assignment;
+};
+
+module.exports.completeTask = async (taskAssignmentId, technicianId) => {
+    const assignment = await db.Task_Assignment.findOne({
+        where: { id: taskAssignmentId, technician_id: technicianId },
+        include: [{ model: db.Task, as: 'task', include: [{ model: db.Service_Orders, as: 'serviceOrder' }] }]
+    });
+
+    if (!assignment) {
+        throw { status: 404, message: "Không tìm thấy phân công công việc." };
+    }
+
+    const serviceOrderId = assignment.task.service_order_id;
+
+    const allAssignments = await db.Task_Assignment.findAll({
+        where: { technician_id: technicianId, status: 'IN_PROGRESS' },
+        include: [{ model: db.Task, as: 'task', where: { service_order_id: serviceOrderId } }]
+    });
+
+    if (allAssignments.length === 0) {
+        throw { status: 400, message: "Không có công việc nào đang thực hiện để hoàn thành." };
+    }
+
+    for (const asg of allAssignments) {
+        asg.status = 'COMPLETED';
+        asg.actual_end_time = new Date();
+        await asg.save();
+
+        const task = asg.task;
+
+        const uncompletedAssignmentsCount = await db.Task_Assignment.count({
+            where: {
+                task_id: task.id,
+                status: { [db.Sequelize.Op.ne]: 'COMPLETED' }
+            }
+        });
+
+        if (uncompletedAssignmentsCount === 0) {
+            task.status = 'COMPLETED';
+            await task.save();
+        }
+    }
+
+    // 4. Kiểm tra xem toàn bộ Service Order đã hoàn thành chưa
+    const uncompletedTasksCount = await db.Task.count({
+        where: {
+            service_order_id: serviceOrderId,
+            status: { [db.Sequelize.Op.ne]: 'COMPLETED' }
+        }
+    });
+
+    if (uncompletedTasksCount === 0) {
+        const serviceOrder = assignment.task.serviceOrder;
+        serviceOrder.status = 'COMPLETED';
+        await serviceOrder.save();
+
+        if (serviceOrder.appointment_id) {
+            const appointmentToUpdate = await db.Appointments.findByPk(serviceOrder.appointment_id);
+            if (appointmentToUpdate && appointmentToUpdate.status !== 'COMPLETED') {
+                appointmentToUpdate.status = 'COMPLETED';
+                await appointmentToUpdate.save();
+            }
+        }
+    }
+
+    return assignment;
+};
