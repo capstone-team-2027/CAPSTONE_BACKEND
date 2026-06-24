@@ -6,6 +6,10 @@ const sparePartCategoryManagementController = require("../../controller/inventor
 const supplierManagementController = require("../../controller/inventory/supplierManagement.controller");
 const importAndExportManagementController = require("../../controller/inventory/importAndExportManagement.controller");
 
+router.get("/approved-quote", importAndExportManagementController.getApprovedQuotesWithParts);
+router.post("/export/:quotationId/approve", importAndExportManagementController.approveExportByQuotation);
+router.get("/export", importAndExportManagementController.viewExportHistory);
+
 router.get("/part", sparePartManagementController.getSpareParts);
 router.patch("/part/:id", sparePartManagementController.updateSparePart);
 

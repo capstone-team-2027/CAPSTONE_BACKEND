@@ -33,7 +33,7 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: false,
       defaultValue: 'PENDING',
       validate: {
-        isIn: [['PENDING', 'APPROVED', 'REJECTED']]
+        isIn: [['PENDING', 'APPROVED', 'REJECTED','EXPORTED']]
       }
     },
     approved_at: {
