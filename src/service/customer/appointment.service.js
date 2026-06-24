@@ -153,29 +153,41 @@ module.exports.createAppointment = async (userId, data) => {
         if (!resolvedVehicleId && data.vehicle_plate) {
             let make = null;
             if (data.vehicle_brand) {
-                [make] = await db.Vehicle_Makes.findOrCreate({
-                    where: { make_name: data.vehicle_brand.trim() },
-                    defaults: { make_name: data.vehicle_brand.trim() },
+                const brandName = data.vehicle_brand.trim();
+                make = await db.Vehicle_Makes.findOne({
+                    where: db.sequelize.where(db.sequelize.fn('LOWER', db.sequelize.col('make_name')), brandName.toLowerCase()),
                     transaction
                 });
+                if (!make) {
+                    make = await db.Vehicle_Makes.create({ make_name: brandName }, { transaction });
+                }
             } else {
-                [make] = await db.Vehicle_Makes.findOrCreate({
+                make = await db.Vehicle_Makes.findOne({
                     where: { make_name: 'Khác' },
-                    defaults: { make_name: 'Khác' },
                     transaction
                 });
+                if (!make) {
+                    make = await db.Vehicle_Makes.create({ make_name: 'Khác' }, { transaction });
+                }
             }
 
             let modelName = data.vehicle_model ? data.vehicle_model.trim() : 'Khác';
-            const [model] = await db.Vehicle_Models.findOrCreate({
-                where: { make_id: make.id, model_name: modelName },
-                defaults: {
+            let model = await db.Vehicle_Models.findOne({
+                where: {
                     make_id: make.id,
-                    model_name: modelName,
-                    vehicle_type: 'Sedan'
+                    [db.Sequelize.Op.and]: [
+                        db.sequelize.where(db.sequelize.fn('LOWER', db.sequelize.col('model_name')), modelName.toLowerCase())
+                    ]
                 },
                 transaction
             });
+            if (!model) {
+                model = await db.Vehicle_Models.create({
+                    make_id: make.id,
+                    model_name: modelName,
+                    vehicle_type: 'Sedan'
+                }, { transaction });
+            }
 
             const [vehicle] = await db.Vehicles.findOrCreate({
                 where: { customer_id: customer.id, license_plate: data.vehicle_plate.trim() },
@@ -412,4 +424,68 @@ module.exports.cancelAppointment = async (userId, appointmentId) => {
     appointment.status = 'CANCELLED';
     await appointment.save();
     return { message: "Hủy lịch hẹn thành công", data: appointment };
+};
+
+module.exports.getAppointmentVehicles = async (userId) => {
+    const customer = await db.Customers.findOne({ where: { user_id: userId } });
+    if (!customer) {
+        throw { status: 404, message: "Hồ sơ khách hàng không tồn tại" };
+    }
+
+    // Lấy tất cả xe của khách hàng
+    const vehicles = await db.Vehicles.findAll({
+        where: { customer_id: customer.id },
+        include: [
+            {
+                model: db.Vehicle_Models,
+                as: 'model',
+                attributes: ['id', 'model_name', 'vehicle_type'],
+                include: [
+                    {
+                        model: db.Vehicle_Makes,
+                        as: 'make',
+                        attributes: ['id', 'make_name']
+                    }
+                ]
+            }
+        ]
+    });
+
+    if (!vehicles || vehicles.length === 0) return [];
+
+    const availableVehicles = [];
+
+    for (const vehicle of vehicles) {
+        // Kiểm tra xem xe có đang có lịch hẹn chờ xử lý hoặc đang xử lý không
+        const activeAppointment = await db.Appointments.findOne({
+            where: {
+                vehicle_id: vehicle.id,
+                status: { [db.Sequelize.Op.in]: ['PENDING', 'CONFIRMED'] }
+            }
+        });
+
+        // Kiểm tra xem xe có đang nằm trong xưởng sửa chữa không
+        const activeServiceOrder = await db.Service_Orders.findOne({
+            where: {
+                vehicle_id: vehicle.id,
+                status: { [db.Sequelize.Op.in]: ['INSPECTING', 'WAITING_FOR_PARTS', 'IN_PROGRESS'] }
+            }
+        });
+
+        const vehicleData = vehicle.toJSON();
+
+        if (activeAppointment) {
+            vehicleData.isDisabled = true;
+            vehicleData.disableReason = 'Xe đang có lịch hẹn chờ xử lý';
+        } else if (activeServiceOrder) {
+            vehicleData.isDisabled = true;
+            vehicleData.disableReason = 'Xe đang được sửa tại xưởng';
+        } else {
+            vehicleData.isDisabled = false;
+        }
+
+        availableVehicles.push(vehicleData);
+    }
+
+    return availableVehicles;
 };

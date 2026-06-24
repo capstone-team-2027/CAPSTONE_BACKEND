@@ -18,6 +18,26 @@ const io = new Server(server, {
 });
 // biến global
 global._io = io; // gọi biến toàn cục
+
+io.on('connection', (socket) => {
+  // Lắng nghe sự kiện Khách hàng yêu cầu gọi Video (ZegoCloud)
+  socket.on('request-video-call', (data) => {
+    // Phát (Broadcast) thông báo cho các Lễ tân đang online
+    socket.broadcast.emit('incoming-video-call', data);
+  });
+
+  // Khi một Lễ tân bấm "Nghe máy"
+  socket.on('accept-video-call', (data) => {
+    // Báo cho toàn bộ các Lễ tân khác để họ tự động tắt chuông báo
+    socket.broadcast.emit('call-answered', data);
+  });
+
+  // Khi một bên kết thúc cuộc gọi
+  socket.on('end-video-call', (data) => {
+    socket.broadcast.emit('end-video-call', data);
+  });
+});
+
 const ROUTES = require("./src/router/registry.routes");
 const whitelist = ["http://localhost:3000", "http://localhost:5173"];
 require("./src/jobs/pricingRule.job");
