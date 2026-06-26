@@ -5,7 +5,7 @@ module.exports.listServiceCategories = async (req, res) => {
   try {
     const result = viewCategorySchema.safeParse(req.query);
     if (!result.success) {
-      const errors = result.error.errors.map((e) => ({
+      const errors = result.error.issues.map((e) => ({
         field: e.path.join("."),
         message: e.message,
       }));
@@ -26,7 +26,7 @@ module.exports.createServiceCategories = async (req, res) => {
   try {
     const result = createCategorySchema.safeParse(req.body);
     if (!result.success) {
-      const errors = result.error.errors.map((e) => ({
+      const errors = result.error.issues.map((e) => ({
         field: e.path.join("."),
         message: e.message,
       }));
@@ -55,7 +55,7 @@ module.exports.updateServiceCategories = async (req, res) => {
 
     const result = updateCategorySchema.safeParse(req.body);
     if (!result.success) {
-      const errors = result.error.errors.map((e) => ({
+      const errors = result.error.issues.map((e) => ({
         field: e.path.join("."),
         message: e.message,
       }));
