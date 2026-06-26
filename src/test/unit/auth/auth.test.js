@@ -96,8 +96,8 @@ describe("AuthController Unit Tests", () => {
         it("should successfully register and return data", async () => {
             const mockResult = { id: 1, fullName: "Test User" };
             req.body = {
-                idToken: "id-token",
                 fullName: "Test User",
+                phone: "0987654321",
                 password: "password123",
                 confirmPassword: "password123",
             };
@@ -109,15 +109,16 @@ describe("AuthController Unit Tests", () => {
 
             expect(authValidation.registerSchema.safeParse).toHaveBeenCalledWith({
                 fullName: req.body.fullName,
+                phone: req.body.phone,
                 password: req.body.password,
             });
             expect(authService.register).toHaveBeenCalledWith(
-                req.body.idToken,
                 req.body.fullName,
+                req.body.phone,
                 req.body.password,
                 req.body.confirmPassword
             );
-            expect(res.status).toHaveBeenCalledWith(200);
+            expect(res.status).toHaveBeenCalledWith(201);
             expect(res.json).toHaveBeenCalledWith({
                 message: "Đăng kí thành công",
                 data: mockResult,
@@ -150,8 +151,8 @@ describe("AuthController Unit Tests", () => {
             const error = new Error("Phone number already exists");
             error.status = 409;
             req.body = {
-                idToken: "id-token",
                 fullName: "Test User",
+                phone: "0987654321",
                 password: "password123",
                 confirmPassword: "password123",
             };
@@ -164,42 +165,6 @@ describe("AuthController Unit Tests", () => {
             expect(res.status).toHaveBeenCalledWith(409);
             expect(res.json).toHaveBeenCalledWith({
                 message: "Phone number already exists",
-            });
-        });
-    });
-
-    describe("checkPhone", () => {
-        it("should successfully check phone number", async () => {
-            req.body = { phone: "0987654321" };
-
-            authValidation.checkPhoneSchema.safeParse.mockReturnValue({ success: true, data: req.body });
-            authService.checkPhone.mockResolvedValue();
-
-            await authController.checkPhone(req, res);
-
-            expect(authValidation.checkPhoneSchema.safeParse).toHaveBeenCalledWith({
-                phone: req.body.phone,
-            });
-            expect(authService.checkPhone).toHaveBeenCalledWith(req.body.phone);
-            expect(res.status).toHaveBeenCalledWith(200);
-            expect(res.json).toHaveBeenCalledWith({
-                message: "",
-            });
-        });
-
-        it("should return error if authService.checkPhone throws", async () => {
-            const error = new Error("Số điện thoại đã được đăng ký");
-            error.status = 400;
-            req.body = { phone: "0987654321" };
-
-            authValidation.checkPhoneSchema.safeParse.mockReturnValue({ success: true, data: req.body });
-            authService.checkPhone.mockRejectedValue(error);
-
-            await authController.checkPhone(req, res);
-
-            expect(res.status).toHaveBeenCalledWith(400);
-            expect(res.json).toHaveBeenCalledWith({
-                message: "Số điện thoại đã được đăng ký",
             });
         });
     });

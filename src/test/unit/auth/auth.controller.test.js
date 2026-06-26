@@ -82,50 +82,57 @@ describe("register", () => {
     );
     expect(res.status).toHaveBeenCalledWith(201);
     });
+  });
+});
 
-    it("should return 200 and new tokens", async () => {
+describe("refreshToken", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it("should return 200 and new tokens", async () => {
     const fakeResult = {
-        accessToken: "new-access-token",
-        refreshToken: "new-refresh-token",
+      accessToken: "new-access-token",
+      refreshToken: "new-refresh-token",
     };
     mockProcessRefreshToken.mockResolvedValue(fakeResult);
     const req = {
-        body: {
+      body: {
         refreshToken: "old-refresh-token",
-        },
+      },
     };
     const res = createMockResponse();
     await controller.refreshToken(req, res);
-    expect(mockProcessRefreshToken).toHaveBeenCalledWith(
-        "old-refresh-token"
-    );
+    expect(mockProcessRefreshToken).toHaveBeenCalledWith("old-refresh-token");
     expect(res.status).toHaveBeenCalledWith(200);
     expect(res.json).toHaveBeenCalledWith({
-        state: 200,
-        message: "Success",
-        accessToken: "new-access-token",
-        refreshToken: "new-refresh-token",
+      state: 200,
+      message: "Success",
+      accessToken: "new-access-token",
+      refreshToken: "new-refresh-token",
     });
-    });
-    it("should return 401 when refresh token is invalid", async () => {
+  });
+
+  it("should return 401 when refresh token is invalid", async () => {
+    jest.spyOn(console, "error").mockImplementation(() => {});
+
     mockProcessRefreshToken.mockRejectedValue(
-        new Error("Invalid refresh token")
+      new Error("Invalid refresh token")
     );
     const req = {
-        body: {
+      body: {
         refreshToken: "invalid-token",
-        },
+      },
     };
     const res = createMockResponse();
     await controller.refreshToken(req, res);
-    expect(mockProcessRefreshToken).toHaveBeenCalledWith(
-        "invalid-token"
-    );
+    expect(mockProcessRefreshToken).toHaveBeenCalledWith("invalid-token");
     expect(res.status).toHaveBeenCalledWith(401);
     expect(res.json).toHaveBeenCalledWith({
-        state: 401,
-        message: "Unauthorized",
+      state: 401,
+      message: "Unauthorized",
     });
-    });
-});
+
+    console.error.mockRestore();
+  });
 });
