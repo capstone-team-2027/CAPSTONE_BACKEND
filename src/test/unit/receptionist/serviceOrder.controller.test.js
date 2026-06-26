@@ -62,7 +62,7 @@ describe("ServiceOrder Controller", () => {
     });
 
     // Unit02: missing appointment_id
-    it("Unit02 - should return error when appointment_id is missing/invalid", async () => {
+    it("Unit02 - should return error when appointment_id is missing", async () => {
       const bodyWithoutAppointment = {
         vehicle_id: 1,
         bay_id: 2,
@@ -86,9 +86,31 @@ describe("ServiceOrder Controller", () => {
       });
     });
 
-    // Unit03: missing selected services/tasks
-    it("Unit03 - should return error when selected services/tasks are missing", async () => {
-      const bodyWithoutServices = {
+    // Unit03: invalid appointment_id (Zod validation error)
+    it("Unit03 - should return error when appointment_id is invalid", async () => {
+      const bodyWithInvalidAppointment = {
+        vehicle_id: 1,
+        bay_id: 2,
+        current_odo: 15000,
+        appointment_id: -5,
+        service_ids: [1, 2]
+      };
+
+      const req = { body: bodyWithInvalidAppointment };
+      const res = createMockResponse();
+
+      await controller.createServiceOrder(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+        success: false,
+        message: "Dữ liệu không hợp lệ"
+      }));
+    });
+
+    // Unit04: service_ids and combo_ids are both empty arrays
+    it("Unit04 - should return error when service_ids and combo_ids are both empty arrays", async () => {
+      const bodyEmptyArrays = {
         vehicle_id: 1,
         bay_id: 2,
         current_odo: 15000,
@@ -101,7 +123,7 @@ describe("ServiceOrder Controller", () => {
         message: "Vui lòng chọn ít nhất một dịch vụ hoặc gói dịch vụ"
       });
 
-      const req = { body: bodyWithoutServices };
+      const req = { body: bodyEmptyArrays };
       const res = createMockResponse();
 
       await controller.createServiceOrder(req, res);
@@ -113,8 +135,33 @@ describe("ServiceOrder Controller", () => {
       });
     });
 
-    // Unit04: appointment not found
-    it("Unit04 - should return 404 when appointment is not found", async () => {
+    // Unit05: service_ids and combo_ids are both missing (undefined)
+    it("Unit05 - should return error when service_ids and combo_ids are both missing", async () => {
+      const bodyBothMissing = {
+        vehicle_id: 1,
+        bay_id: 2,
+        current_odo: 15000,
+        appointment_id: 10
+      };
+      mockCreateServiceOrder.mockRejectedValue({
+        status: 400,
+        message: "Vui lòng chọn ít nhất một dịch vụ hoặc gói dịch vụ"
+      });
+
+      const req = { body: bodyBothMissing };
+      const res = createMockResponse();
+
+      await controller.createServiceOrder(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({
+        success: false,
+        message: "Vui lòng chọn ít nhất một dịch vụ hoặc gói dịch vụ"
+      });
+    });
+
+    // Unit06: appointment not found
+    it("Unit06 - should return 404 when appointment is not found", async () => {
       const body = {
         vehicle_id: 1,
         bay_id: 2,
@@ -139,8 +186,8 @@ describe("ServiceOrder Controller", () => {
       });
     });
 
-    // Unit05: appointment invalid status
-    it("Unit05 - should return 400 when appointment has invalid status or is already processed", async () => {
+    // Unit07: appointment invalid status
+    it("Unit07 - should return 400 when appointment has invalid status or is already processed", async () => {
       const body = {
         vehicle_id: 1,
         bay_id: 2,
@@ -165,8 +212,8 @@ describe("ServiceOrder Controller", () => {
       });
     });
 
-    // Unit06: no available service bay
-    it("Unit06 - should return error when selected service bay is busy or unavailable", async () => {
+    // Unit08: no available service bay
+    it("Unit08 - should return error when selected service bay is busy or unavailable", async () => {
       const body = {
         vehicle_id: 1,
         bay_id: 5,
@@ -191,8 +238,8 @@ describe("ServiceOrder Controller", () => {
       });
     });
 
-    // Unit07: no available technician
-    it("Unit07 - should return error when no technicians are available to assign", async () => {
+    // Unit09: no available technician
+    it("Unit09 - should return error when no technicians are available to assign", async () => {
       const body = {
         vehicle_id: 1,
         bay_id: 2,
@@ -217,8 +264,8 @@ describe("ServiceOrder Controller", () => {
       });
     });
 
-    // Unit08: selected service/combo not found
-    it("Unit08 - should return error when selected service catalog/combo does not exist", async () => {
+    // Unit10: selected service/combo not found
+    it("Unit10 - should return error when selected service catalog/combo does not exist", async () => {
       const body = {
         vehicle_id: 1,
         bay_id: 2,
@@ -243,8 +290,8 @@ describe("ServiceOrder Controller", () => {
       });
     });
 
-    // Unit09: rollback transaction when task creation failed
-    it("Unit09 - should return 500 and rollback transaction when task creation fails", async () => {
+    // Unit11: rollback transaction when task creation failed
+    it("Unit11 - should return 500 and rollback transaction when task creation fails", async () => {
       const body = {
         vehicle_id: 1,
         bay_id: 2,
@@ -269,8 +316,8 @@ describe("ServiceOrder Controller", () => {
       });
     });
 
-    // Unit10: database/system error
-    it("Unit10 - should return 500 when database or system fails", async () => {
+    // Unit12: database/system error
+    it("Unit12 - should return 500 when database or system fails", async () => {
       const body = {
         vehicle_id: 1,
         bay_id: 2,
@@ -294,8 +341,8 @@ describe("ServiceOrder Controller", () => {
   });
 
   describe("getServiceOrders", () => {
-    // Unit11: get all service orders successfully
-    it("Unit11 - should return list of service orders on success", async () => {
+    // Unit13: get all service orders successfully
+    it("Unit13 - should return list of service orders on success", async () => {
       const mockList = [
         { id: 1, current_odo: 12000, status: "IN_PROGRESS" },
         { id: 2, current_odo: 80000, status: "COMPLETED" }
@@ -315,8 +362,8 @@ describe("ServiceOrder Controller", () => {
       });
     });
 
-    // Unit12: database failure on get all
-    it("Unit12 - should return 500 when database query fails on fetching service orders", async () => {
+    // Unit14: database failure on get all
+    it("Unit14 - should return 500 when database query fails on fetching service orders", async () => {
       mockGetServiceOrders.mockRejectedValue(new Error("Database error"));
 
       const req = {};
@@ -333,8 +380,8 @@ describe("ServiceOrder Controller", () => {
   });
 
   describe("getServiceOrderById", () => {
-    // Unit13: get service order by ID successfully
-    it("Unit13 - should return service order detail by ID on success", async () => {
+    // Unit15: get service order by ID successfully
+    it("Unit15 - should return service order detail by ID on success", async () => {
       const mockDetail = { id: 5, current_odo: 35000, status: "INSPECTING" };
       mockGetServiceOrderById.mockResolvedValue(mockDetail);
 
@@ -351,8 +398,8 @@ describe("ServiceOrder Controller", () => {
       });
     });
 
-    // Unit14: service order ID not found
-    it("Unit14 - should return 404 when service order ID does not exist", async () => {
+    // Unit16: service order ID not found
+    it("Unit16 - should return 404 when service order ID does not exist", async () => {
       mockGetServiceOrderById.mockRejectedValue({
         status: 404,
         message: "Không tìm thấy Lệnh sửa chữa này"
@@ -370,8 +417,8 @@ describe("ServiceOrder Controller", () => {
       });
     });
 
-    // Unit15: database failure on get by ID
-    it("Unit15 - should return 500 when database fails on fetching detail by ID", async () => {
+    // Unit17: database failure on get by ID
+    it("Unit17 - should return 500 when database fails on fetching detail by ID", async () => {
       mockGetServiceOrderById.mockRejectedValue(new Error("Connection error"));
 
       const req = { params: { id: "5" } };
@@ -388,8 +435,8 @@ describe("ServiceOrder Controller", () => {
   });
 
   describe("updateServiceOrderOdo", () => {
-    // Unit16: update ODO successfully
-    it("Unit16 - should update ODO mileage successfully", async () => {
+    // Unit18: update ODO successfully
+    it("Unit18 - should update ODO mileage successfully", async () => {
       const mockResult = { id: 5, current_odo: 36000 };
       mockUpdateServiceOrderOdo.mockResolvedValue(mockResult);
 
@@ -407,8 +454,8 @@ describe("ServiceOrder Controller", () => {
       });
     });
 
-    // Unit17: missing current_odo in request body
-    it("Unit17 - should return 400 when current_odo is missing in body", async () => {
+    // Unit19: missing current_odo in request body
+    it("Unit19 - should return 400 when current_odo is missing in body", async () => {
       const req = { params: { id: "5" }, body: {} };
       const res = createMockResponse();
 
@@ -422,8 +469,8 @@ describe("ServiceOrder Controller", () => {
       expect(mockUpdateServiceOrderOdo).not.toHaveBeenCalled();
     });
 
-    // Unit18: service order not found on ODO update
-    it("Unit18 - should return 404 when updating ODO for non-existent service order", async () => {
+    // Unit20: service order not found on ODO update
+    it("Unit20 - should return 404 when updating ODO for non-existent service order", async () => {
       mockUpdateServiceOrderOdo.mockRejectedValue({
         status: 404,
         message: "Không tìm thấy Lệnh sửa chữa này"
@@ -441,8 +488,8 @@ describe("ServiceOrder Controller", () => {
       });
     });
 
-    // Unit19: database failure on ODO update
-    it("Unit19 - should return 500 when database fails during ODO update", async () => {
+    // Unit21: database failure on ODO update
+    it("Unit21 - should return 500 when database fails during ODO update", async () => {
       mockUpdateServiceOrderOdo.mockRejectedValue(new Error("DB Save Error"));
 
       const req = { params: { id: "5" }, body: { current_odo: 36000 } };
