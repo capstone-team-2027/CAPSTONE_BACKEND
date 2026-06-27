@@ -10,7 +10,7 @@ module.exports = {
     return queryInterface.bulkInsert('Users', [
       {
         roleId: 1,
-        phoneNumber: '0999999999',
+        phoneNumber: '84999999999',
         password: hashPassword,
         fullName: 'Nguyễn Admin',
         avatar: 'https://i.pravatar.cc/150?u=admin',
@@ -21,7 +21,7 @@ module.exports = {
       },
       {
         roleId: 3, // ID của TECHNICIAN_LEADER
-        phoneNumber: '0382657269',
+        phoneNumber: '84382657269',
         password: hashPassword,
         fullName: 'Trần Tổ Trưởng',
         avatar: 'https://i.pravatar.cc/150?u=leader',
@@ -32,7 +32,7 @@ module.exports = {
       },
       {
         roleId: 4, // ID của TECHNICIAN
-        phoneNumber: '0900000001',
+        phoneNumber: '84900000001',
         password: hashPassword,
         fullName: 'Lê Thợ Máy',
         avatar: 'https://i.pravatar.cc/150?u=tech',
@@ -43,7 +43,7 @@ module.exports = {
       },
       {
         roleId: 5, // ID của CUSTOMER
-        phoneNumber: '0888888888',
+        phoneNumber: '84888888888',
         password: hashPassword,
         fullName: 'Phạm Văn A',
         avatar: 'https://i.pravatar.cc/150?u=customer',

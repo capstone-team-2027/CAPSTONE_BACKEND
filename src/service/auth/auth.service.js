@@ -7,6 +7,10 @@ const bcrypt = require("bcrypt");
 const { normalizeVnPhone } = require("../../util/phone.util");
 const { where } = require("sequelize");
 const admin = require("../../config/firebase.config");
+const {
+  generateAccessToken,
+  generateRefreshToken,
+} = require("../../util/jwt.util");
 
 module.exports.login = async (phone, password) => {
   const user = await User.findOne({
@@ -20,12 +24,14 @@ module.exports.login = async (phone, password) => {
       },
     ],
   });
+
   if (!user) {
     throw {
       status: 404,
       message: "Số điện thoại hoặc Mật khẩu bị sai",
     };
   }
+
   const isMatch = await bcrypt.compare(password, user.password);
   if (!isMatch) {
     throw {
@@ -33,25 +39,34 @@ module.exports.login = async (phone, password) => {
       message: "Số điện thoại hoặc Mật khẩu bị sai",
     };
   }
-  const accessToken = jwt.sign(
-    {
-      id: user.id,
-      roleId: user.roleId,
-    },
-    process.env.ACCESS_TOKEN_KEY,
-    {
-      expiresIn: process.env.ACCESSTOKEN_ExpiresIn,
-    },
-  );
-  const refreshToken = jwt.sign(
-    {
-      id: user.id,
-    },
-    process.env.REFRESH_TOKEN_KEY,
-    {
-      expiresIn: process.env.REFESHTOKEN_ExpiresIn,
-    },
-  );
+
+  switch (user.status) {
+    case "PENDING":
+      throw {
+        status: 403,
+        message:
+          "Tài khoản chưa được kích hoạt. Vui lòng liên hệ quản trị viên.",
+      };
+    case "INACTIVE":
+      throw {
+        status: 403,
+        message: "Tài khoản đã bị vô hiệu hóa. Vui lòng liên hệ quản trị viên.",
+      };
+    case "BANNED":
+      throw {
+        status: 403,
+        message: "Tài khoản đã bị khóa vĩnh viễn.",
+      };
+    case "ACTIVE":
+      break;
+    default:
+      throw {
+        status: 403,
+        message: "Trạng thái tài khoản không hợp lệ.",
+      };
+  }
+  const accessToken = generateAccessToken(user);
+  const refreshToken = generateRefreshToken(user);
   user.refreshToken = refreshToken;
   await user.save();
   return {
@@ -61,29 +76,58 @@ module.exports.login = async (phone, password) => {
       id: user.id,
       fullName: user.fullName,
       phoneNumber: user.phoneNumber,
-      role: user.role?.roleName,
+      role: user.role?.roleCode,
       avatar: user.avatar,
+      status: user.status,
     },
   };
 };
 
-module.exports.checkPhone = async (phone) => {
-  const normalizePhone = await normalizeVnPhone(phone);
-  if (!normalizePhone) {
-    throw {
-      status: 400,
-      message: "Số điện thoại không hợp lệ, vui lòng thử lại",
-    };
-  }
-  const user = await User.findOne({
-    where: { phoneNumber: normalizePhone },
+module.exports.loginWithGoogle = async (profile) => {
+  const googleId = profile.id;
+  const email = profile.emails?.[0]?.value;
+  const fullName = profile.displayName;
+  const avatar = profile.photos?.[0]?.value || "";
+  let user = await User.findOne({
+    where: { googleId },
+    include: [{ model: db.Role, as: "role" }],
   });
-  if (user && user.status == "ACTIVE") {
-    throw {
-      status: 400,
-      message: "Người dùng đã tồn tại, vui lòng đăng nhập",
-    };
+  if (!user) {
+    const customerRole = await db.Role.findOne({
+      where: { roleCode: "CUSTOMER" },
+    });
+
+    const created = await User.create({
+      googleId,
+      email,
+      fullName,
+      avatar,
+      roleId: customerRole.id,
+      status: "ACTIVE",
+    });
+
+    user = await User.findOne({
+      where: { id: created.id },
+      include: [{ model: db.Role, as: "role" }],
+    });
   }
+  const accessToken = generateAccessToken(user);
+  const refreshToken = generateRefreshToken(user);
+  user.refreshToken = refreshToken;
+  await user.save();
+  return {
+    accessToken,
+    refreshToken,
+    user: {
+      id: user.id,
+      fullName: user.fullName,
+      phoneNumber: user.phoneNumber,
+      email: user.email,
+      role: user.role?.roleCode,
+      avatar: user.avatar,
+      status: user.status,
+    },
+  };
 };
 
 module.exports.register = async (
@@ -123,7 +167,6 @@ module.exports.register = async (
       message: "Mật khẩu xác nhận không trùng khớp",
     };
   }
-
   const existingUser = await User.findOne({
     where: { phoneNumber: normalizePhone },
   });
@@ -167,7 +210,7 @@ module.exports.processRefreshToken = async (refreshToken) => {
       { userId: currentUser.id },
       process.env.ACCESS_TOKEN_KEY,
       {
-        expiresIn: process.env.ACCESSTOKEN_ExpiresIn || "1h",
+        expiresIn: process.env.ACCESS_TOKEN_EXPIRES_IN || "1h",
       },
     );
     return {
@@ -179,30 +222,34 @@ module.exports.processRefreshToken = async (refreshToken) => {
   }
 };
 
-module.exports.changePassword = async (
-  userId,
-  currentPassword,
-  newPassword,
-) => {
-  if (!userId) {
-    throw { status: 401, message: "Unauthorized" };
+module.exports.forgotPassword = async (phone, password, confirmPassword) => {
+  const normalizePhone = await normalizeVnPhone(phone);
+  if (!normalizePhone) {
+    throw {
+      status: 400,
+      message: "Số điện thoại không hợp lệ, vui lòng thử lại",
+    };
   }
-
-  const user = await User.findOne({ where: { id: userId } });
+  if (password !== confirmPassword) {
+    throw {
+      status: 400,
+      message: "Mật khẩu xác nhận không trùng khớp",
+    };
+  }
+  const user = await User.findOne({
+    where: { phoneNumber: normalizePhone },
+  });
   if (!user) {
-    throw { status: 404, message: "User not found" };
+    throw {
+      status: 404,
+      message: "Không tìm thấy tài khoản liên kết với số điện thoại này",
+    };
   }
-
-  const isMatch = await bcrypt.compare(currentPassword, user.password);
-  if (!isMatch) {
-    throw { status: 400, message: "Mật khẩu hiện tại không đúng" };
-  }
-
-  const hashedPassword = await bcrypt.hash(newPassword, 10);
-
-  user.password = hashedPassword;
+  const hashPassword = await bcrypt.hash(password, 10);
+  user.password = hashPassword;
   user.refreshToken = null;
   await user.save();
-
-  return { message: "Đổi mật khẩu thành công" };
+  return {
+    message: "Đặt lại mật khẩu thành công",
+  };
 };
