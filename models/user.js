@@ -40,9 +40,12 @@ module.exports = (sequelize, DataTypes) => {
           as: 'notifications'
         });
       }
-
-
-      // 1-n : hasMany
+      if (models.Shift_Templates) {
+        User.hasMany(models.Shift_Templates, {
+          foreignKey: 'user_id',
+          as: 'shiftTemplates'
+        });
+      }
     }
   }
   User.init({
@@ -95,6 +98,14 @@ module.exports = (sequelize, DataTypes) => {
     hasDrivingLicense: {
       type: DataTypes.BOOLEAN,
       defaultValue: false
+    },
+    skillLevel: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      defaultValue: 1,
+      validate: {
+        isIn: [[1, 2, 3]]
+      }
     },
 
   }, {

@@ -41,6 +41,7 @@ io.on('connection', (socket) => {
 const ROUTES = require("./src/router/registry.routes");
 const whitelist = ["http://localhost:3000", "http://localhost:5173"];
 require("./src/jobs/pricingRule.job");
+require("./src/jobs/shift.job");
 app.use(
   cors({
     origin(origin, callback) {

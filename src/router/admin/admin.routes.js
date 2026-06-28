@@ -8,7 +8,9 @@ const staffController = require("../../controller/admin/manageStaff.controller")
 const controllerServiceBays = require("../../controller/admin/serviceBays.controller");
 const warrantyController = require("../../controller/admin/warrantyPolicies.controller");
 const warrantyUpload = require("../../util/warrantyUpload.util");
-const manageCustomer = require("./../../controller/admin/manageCustomer.controller")
+const manageCustomer = require("./../../controller/admin/manageCustomer.controller");
+const shiftController = require('../../controller/admin/shift.controller');
+
 router.get("/role", staffController.getRoles);
 router.get("/staff", staffController.getStaffList);
 router.post("/staff", staffController.createStaff);
@@ -45,5 +47,16 @@ router.put("/warranty-policy/:id", warrantyUpload.fields([{ name: "image_cover",
 
 router.get("/customer", manageCustomer.getCustomer);
 router.get("/customer/:id", manageCustomer.getCustomerDetail);
+
+// Lấy danh sách khung ca
+router.get('/shift/slots', shiftController.getAllShiftSlots);
+router.post('/shift/slots', shiftController.createShiftSlot);
+router.put('/shift/slots/:id', shiftController.updateShiftSlot);
+
+// Xếp ca làm việc
+router.get("/shift/templates", shiftController.getShiftTemplates);
+router.post("/shift/templates/assign", shiftController.assignShift);
+router.post("/shift/templates/auto-generate", shiftController.autoGenerateSchedule);
+router.post("/shift/templates/confirm", shiftController.confirmSchedule);
 
 module.exports = router;

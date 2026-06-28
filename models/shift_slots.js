@@ -11,7 +11,12 @@ module.exports = (sequelize, DataTypes) => {
      * The `models/index` file will call this method automatically.
      */
     static associate(models) {
-      // define association here
+      if (models.Shift_Templates) {
+        Shift_Slots.hasMany(models.Shift_Templates, {
+          foreignKey: 'slot_id',
+          as: 'shiftTemplates'
+        });
+      }
     }
   }
 

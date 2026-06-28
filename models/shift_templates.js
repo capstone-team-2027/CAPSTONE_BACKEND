@@ -11,9 +11,8 @@ module.exports = (sequelize, DataTypes) => {
      * The `models/index` file will call this method automatically.
      */
     static associate(models) {
-      // define association here
-      // Shift_Templates.belongsTo(models.User, { foreignKey: 'user_id' });
-      // Shift_Templates.belongsTo(models.Shift_Slots, { foreignKey: 'slot_id' });
+      Shift_Templates.belongsTo(models.User, { foreignKey: 'user_id', as: 'user' });
+      Shift_Templates.belongsTo(models.Shift_Slots, { foreignKey: 'slot_id', as: 'shiftSlot' });
     }
   }
 

@@ -61,7 +61,7 @@ module.exports.getAppointment = async () => {
             {
                 model: db.Service_Orders,
                 as: 'serviceOrder',
-                attributes: ['id']
+                attributes: ['id', 'current_odo']
             }
         ],
         order: [['scheduled_time', 'DESC']]
