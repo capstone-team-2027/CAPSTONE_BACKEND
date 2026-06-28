@@ -129,7 +129,24 @@ module.exports.loginWithGoogle = async (profile) => {
     },
   };
 };
-
+module.exports.checkPhone = async (phone) => {
+    const normalizePhone = await normalizeVnPhone(phone);
+    if (!normalizePhone) {
+        throw {
+            status: 400,
+            message: "Số điện thoại không hợp lệ, vui lòng thử lại"
+        };
+    }; 
+    const user = await User.findOne({
+        where: {phoneNumber: normalizePhone}
+    });
+    if (user && user.status == "ACTIVE"){
+         throw {
+            status: 400,
+            message: "Người dùng đã tồn tại trong hệ thống, vui lòng đăng nhập"
+        };
+    }
+};
 module.exports.register = async (
   idToken,
   fullName,
