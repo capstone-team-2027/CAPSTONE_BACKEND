@@ -82,7 +82,7 @@ module.exports.checkPhone = async (phone) => {
     if (user && user.status == "ACTIVE"){
          throw {
             status: 400,
-            message: "Người dùng đã tồn tại, vui lòng đăng nhập"
+            message: "Người dùng đã tồn tại trong hệ thống, vui lòng đăng nhập"
         };
     }
 };
