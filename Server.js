@@ -25,7 +25,12 @@ const io = new Server(server, {
 // biến global
 global._io = io; // gọi biến toàn cục
 const ROUTES = require("./src/router/registry.routes");
-const whitelist = ["http://localhost:3000", "http://localhost:5173"];
+const whitelist = [
+  "http://localhost:3000",
+  "http://localhost:5173",
+  "https://agm-garage.id.vn",
+  "https://www.agm-garage.id.vn"
+];
 require("./src/jobs/pricingRule.job");
 app.use(
   cors({
