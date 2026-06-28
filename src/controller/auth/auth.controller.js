@@ -42,6 +42,21 @@ exports.googleCallback = async (req, res) => {
   }
 };
 
+module.exports.checkPhone = async (req,res) => {
+    try {
+        const {phone} = req.body;
+        const validation = checkPhoneSchema.safeParse({phone});
+        await authService.checkPhone(phone);
+         return res.status(200).json({
+            message: "",
+        });
+    } catch (error) {
+        return res.status(error.status || 500).json({
+            message: error.message || "Internal server error"
+        });
+    }
+}
+
 module.exports.register = async (req, res) => {
   try {
     const { fullName, phone, password, confirmPassword } = req.body;
