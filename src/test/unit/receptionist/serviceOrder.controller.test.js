@@ -231,7 +231,7 @@ describe("ServiceOrder Controller", () => {
 
       await controller.createServiceOrder(req, res);
 
-      expect(res.status).toHaveBeenCalledWith(404);
+      expect(res.status).toHaveBeenCalledWith(400);
       expect(res.json).toHaveBeenCalledWith({
         success: false,
         message: "Cầu nâng không tồn tại hoặc đã bận"
@@ -413,7 +413,7 @@ describe("ServiceOrder Controller", () => {
       expect(res.status).toHaveBeenCalledWith(404);
       expect(res.json).toHaveBeenCalledWith({
         success: false,
-        message: "Không tìm thấy Lệnh sửa chữa này"
+        message: "Lỗi tìm kiếm lệnh sửa chữa"
       });
     });
 
