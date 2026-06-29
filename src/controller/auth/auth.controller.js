@@ -42,32 +42,42 @@ exports.googleCallback = async (req, res) => {
   }
 };
 
-module.exports.register = async (req, res) => {
-  try {
-    const { fullName, phone, password, confirmPassword } = req.body;
-    const validation = registerSchema.safeParse({ fullName, phone, password });
-      if (!validation.success) {
-      return res.status(400).json({
-        message: validation.error.issues[0].message,
-      });
+module.exports.checkPhone = async (req,res) => {
+    try {
+        const {phone} = req.body;
+        const validation = checkPhoneSchema.safeParse({phone});
+        await authService.checkPhone(phone);
+         return res.status(200).json({
+            message: "",
+        });
+    } catch (error) {
+        return res.status(error.status || 500).json({
+            message: error.message || "Internal server error"
+        });
     }
-    const result = await authService.register(
-      fullName,
-      phone,
-      password,
-      confirmPassword,
-    );
-    return res.status(201).json({
-      message: "Đăng kí thành công",
-      data: result,
-    });
-  } catch (error) {
-    return res.status(error.status || 500).json({
-      message: error.message || "Internal server error",
-    });
-  }
-};
+}
 
+
+module.exports.register = async (req,res) => {
+    try {
+        const {idToken, fullName, password, confirmPassword} = req.body;
+        const validation = registerSchema.safeParse({fullName, password});
+        if (!validation.success) {
+            return res.status(400).json({
+                message: validation.error.issues[0].message
+            });
+        }
+        const result = await authService.register(idToken, fullName, password, confirmPassword)
+        return res.status(200).json({
+            message: "Đăng kí thành công",
+            data: result
+        });
+    } catch (error) {
+        return res.status(error.status || 500).json({
+            message: error.message || "Internal server error"
+        });
+    }
+};
 module.exports.refreshToken = async (req, res) => {
   const refreshToken = req.body.refreshToken; 
   try {

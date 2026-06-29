@@ -10,7 +10,6 @@ module.exports.createQuotation = async (data) => {
     const detailsData = [];
     for (const item of data.items) {
       let unitPrice = 0;
-
       if (item.service_catalog_id) {
         const catalog = await ServiceCatalog.findByPk(item.service_catalog_id, {
           transaction: t,

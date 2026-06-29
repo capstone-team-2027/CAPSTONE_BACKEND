@@ -21,7 +21,7 @@ module.exports = {
       },
       vehicle_id: {
         type: Sequelize.INTEGER,
-        allowNull: true, // 🔥 SỬA TẠI ĐÂY: Đổi thành true để hỗ trợ khách vãng lai chưa tạo thông tin xe
+        allowNull: true, //  xe
         references: {
           model: 'Vehicles',
           key: 'id'
