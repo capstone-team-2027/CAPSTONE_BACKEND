@@ -4,14 +4,32 @@ const app = express();
 const port = process.env.PORT || 3000;
 const bodyParser = require("body-parser");
 const passport = require("passport");
-const configureGoogle = require("./src/config/google.config");
+const cors = require("cors");
+const configureGoogle = require("../CAPSTONE_BACKEND/src/config/google.config");
 
+const whitelist = [
+  "http://localhost:3000",
+  "http://localhost:5173",
+  "https://agm-garage.id.vn",
+  "https://www.agm-garage.id.vn"
+];
+app.use(
+  cors({
+    origin(origin, callback) {
+      if (!origin || whitelist.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true,
+  }),
+);
 configureGoogle(passport);
 app.use(passport.initialize());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 
-var cors = require("cors");
 // cấu hình socket
 const http = require("http");
 const server = http.createServer(app);
@@ -43,11 +61,8 @@ io.on('connection', (socket) => {
     socket.broadcast.emit('end-video-call', data);
   });
 });
-
 const ROUTES = require("./src/router/registry.routes");
-const whitelist = ["http://localhost:3000", "http://localhost:5173"];
 require("./src/jobs/pricingRule.job");
-require("./src/jobs/shift.job");
 app.use(
   cors({
     origin(origin, callback) {
