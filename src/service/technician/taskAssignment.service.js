@@ -198,8 +198,8 @@ module.exports.startTask = async (taskAssignmentId, technicianId) => {
         throw { status: 400, message: "Không tìm thấy lịch hẹn liên kết với phân công này." };
     }
 
-    if (appointment.status !== 'WALK_IN' && appointment.booking_type !== 'WALK_IN') {
-        throw { status: 403, message: "Chỉ được phép bắt đầu công việc đối với những Lịch hẹn có trạng thái là WALK_IN." };
+    if (appointment.status !== 'IN_PROGRESS') {
+        throw { status: 403, message: "Lễ tân chưa tiếp nhận xe này vào xưởng, không thể bắt đầu công việc." };
     }
 
     const serviceOrderId = assignment.task.service_order_id;

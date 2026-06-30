@@ -8,16 +8,18 @@ const staffController = require("../../controller/admin/manageStaff.controller")
 const controllerServiceBays = require("../../controller/admin/serviceBays.controller");
 const warrantyController = require("../../controller/admin/warrantyPolicies.controller");
 const warrantyUpload = require("../../util/warrantyUpload.util");
+const manageCustomer = require("./../../controller/admin/manageCustomer.controller");
+const shiftController = require('../../controller/admin/shift.controller');
 
 router.get("/role", staffController.getRoles);
 router.get("/staff", staffController.getStaffList);
 router.post("/staff", staffController.createStaff);
 router.put("/staff/:userId", staffController.updateStaff);
 
-router.get("/service-categories",serviceCatalogController.getServiceCategories);
+router.get("/service-categories", serviceCatalogController.getServiceCategories);
 router.post("/service-catalog", serviceCatalogController.createServiceCatalog);
 router.get("/service-catalog", serviceCatalogController.getServiceCatalog);
-router.patch("/service-catalog/:id",serviceCatalogController.updateServiceCatalog);
+router.patch("/service-catalog/:id", serviceCatalogController.updateServiceCatalog);
 
 router.get("/service-combos", serviceCombosController.getServiceCombos);
 router.post("/service-combos", serviceCombosController.createServiceCombo);
@@ -40,7 +42,21 @@ router.put("/service-bay/:id", controllerServiceBays.updateServiceBay);
 router.delete("/service-bay/:id", controllerServiceBays.removeServiceBay);
 
 router.get("/warranty-policies", warrantyController.getWarrantyPolicies);
-router.post("/warranty-policy",warrantyUpload.fields([{ name: "image_cover", maxCount: 1 },{ name: "pdf_document", maxCount: 1 }]),warrantyController.createWarrantyPolicy);
-router.put("/warranty-policy/:id",warrantyUpload.fields([{ name: "image_cover", maxCount: 1 },{ name: "pdf_document", maxCount: 1 }]),warrantyController.updateWarrantyPolicy);
+router.post("/warranty-policy", warrantyUpload.fields([{ name: "image_cover", maxCount: 1 }, { name: "pdf_document", maxCount: 1 }]), warrantyController.createWarrantyPolicy);
+router.put("/warranty-policy/:id", warrantyUpload.fields([{ name: "image_cover", maxCount: 1 }, { name: "pdf_document", maxCount: 1 }]), warrantyController.updateWarrantyPolicy);
+
+router.get("/customer", manageCustomer.getCustomer);
+router.get("/customer/:id", manageCustomer.getCustomerDetail);
+
+// Lấy danh sách khung ca
+router.get('/shift/slots', shiftController.getAllShiftSlots);
+router.post('/shift/slots', shiftController.createShiftSlot);
+router.put('/shift/slots/:id', shiftController.updateShiftSlot);
+
+// Xếp ca làm việc
+router.get("/shift/templates", shiftController.getShiftTemplates);
+router.post("/shift/templates/assign", shiftController.assignShift);
+router.post("/shift/templates/auto-generate", shiftController.autoGenerateSchedule);
+router.post("/shift/templates/confirm", shiftController.confirmSchedule);
 
 module.exports = router;

@@ -16,7 +16,8 @@ const createServiceOrderSchema = z.object({
     appointment_id: z.number().positive("ID lịch hẹn không hợp lệ").nullable().optional(),
     estimated_finish_time: z.string().optional(),
     service_ids: z.array(z.number()).optional(),
-    combo_ids: z.array(z.number()).optional()
+    combo_ids: z.array(z.number()).optional(),
+    notes: z.string().optional()
 }).refine(data => data.vehicle_id || data.walk_in, {
     message: "Phải cung cấp ID xe hoặc thông tin khách vãng lai",
     path: ["vehicle_id"]

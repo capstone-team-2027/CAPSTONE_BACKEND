@@ -5,7 +5,7 @@ const port = process.env.PORT || 3000;
 const bodyParser = require("body-parser");
 const passport = require("passport");
 const cors = require("cors");
-const configureGoogle = require("../CAPSTONE_BACKEND/src/config/google.config");
+const configureGoogle = require("../BACKEND/src/config/google.config");
 
 const whitelist = [
   "http://localhost:3000",
@@ -25,7 +25,6 @@ app.use(
     credentials: true,
   }),
 );
-
 configureGoogle(passport);
 app.use(passport.initialize());
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -41,10 +40,42 @@ const io = new Server(server, {
     methods: ["GET", "POST"],
   },
 });
-global._io = io;
+// biến global
+global._io = io; // gọi biến toàn cục
+
+io.on('connection', (socket) => {
+  // Lắng nghe sự kiện Khách hàng yêu cầu gọi Video (ZegoCloud)
+  socket.on('request-video-call', (data) => {
+    // Phát (Broadcast) thông báo cho các Lễ tân đang online
+    socket.broadcast.emit('incoming-video-call', data);
+  });
+
+  // Khi một Lễ tân bấm "Nghe máy"
+  socket.on('accept-video-call', (data) => {
+    // Báo cho toàn bộ các Lễ tân khác để họ tự động tắt chuông báo
+    socket.broadcast.emit('call-answered', data);
+  });
+
+  // Khi một bên kết thúc cuộc gọi
+  socket.on('end-video-call', (data) => {
+    socket.broadcast.emit('end-video-call', data);
+  });
+});
 const ROUTES = require("./src/router/registry.routes");
 require("./src/jobs/pricingRule.job");
-
+app.use(
+  cors({
+    origin(origin, callback) {
+      if (!origin || whitelist.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true,
+  }),
+);
+// cách router để có thể hoạt động được
 ROUTES.forEach((route) => {
   if (route.middlewares && route.middlewares.length > 0) {
     app.use(route.prefix, ...route.middlewares, route.router);
