@@ -15,7 +15,6 @@ module.exports.importSparePart = async (req, res) => {
       supplier_id,
       items,
     });
-
     if (!validation.success) {
       console.log(validation.error.issues);
       return res.status(400).json({

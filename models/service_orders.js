@@ -1,7 +1,5 @@
-'use strict';
-const {
-  Model
-} = require('sequelize');
+"use strict";
+const { Model } = require("sequelize");
 module.exports = (sequelize, DataTypes) => {
   class Service_Orders extends Model {
     /**
@@ -11,78 +9,81 @@ module.exports = (sequelize, DataTypes) => {
      */
     static associate(models) {
       this.belongsTo(models.Appointments, {
-        foreignKey: 'appointment_id',
-        as: 'appointment'
+        foreignKey: "appointment_id",
+        as: "appointment",
       });
 
       // 2. Một lệnh sửa chữa bắt buộc phải thuộc về một chiếc xe cụ thể
       this.belongsTo(models.Vehicles, {
-        foreignKey: 'vehicle_id',
-        as: 'vehicle'
+        foreignKey: "vehicle_id",
+        as: "vehicle",
       });
 
       // 3. Lệnh sửa chữa được tiếp nhận bởi một Lễ tân/Cố vấn dịch vụ cụ thể
       this.belongsTo(models.User, {
-        foreignKey: 'receptionist_id',
-        as: 'receptionist'
+        foreignKey: "receptionist_id",
+        as: "receptionist",
       });
 
       // 4. Lệnh sửa chữa đang được thực hiện tại một Cầu nâng nhất định
       this.belongsTo(models.Service_Bays, {
-        foreignKey: 'bay_id',
-        as: 'bay'
+        foreignKey: "bay_id",
+        as: "bay",
       });
 
       // 5. Lệnh sửa chữa có thể bao gồm nhiều Tasks
       if (models.Task) {
         this.hasMany(models.Task, {
-          foreignKey: 'service_order_id',
-          as: 'tasks'
+          foreignKey: "service_order_id",
+          as: "tasks",
         });
       }
     }
   }
-  Service_Orders.init({
-    appointment_id: {
-      type: DataTypes.INTEGER,
-      allowNull: true,
-      unique: true
+  Service_Orders.init(
+    {
+      appointment_id: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        unique: true,
+      },
+      vehicle_id: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+      },
+      receptionist_id: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+      },
+      bay_id: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+      },
+      current_odo: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+      },
+      status: {
+        type: DataTypes.STRING(50),
+        allowNull: false,
+        defaultValue: "INSPECTING",
+      },
+      entry_time: {
+        type: DataTypes.DATE,
+        allowNull: false,
+        defaultValue: DataTypes.NOW,
+      },
+      estimated_finish_time: DataTypes.DATE,
+      promised_finish_time: DataTypes.DATE,
+      actual_finish_time: DataTypes.DATE,
+      exit_time: DataTypes.DATE,
     },
-    vehicle_id: {
-      type: DataTypes.INTEGER,
-      allowNull: false
+    {
+      sequelize,
+      modelName: "Service_Orders",
+      tableName: "Service_Orders",
+      timestamps: true,
     },
-    receptionist_id: {
-      type: DataTypes.INTEGER,
-      allowNull: false
-    },
-    bay_id: {
-      type: DataTypes.INTEGER,
-      allowNull: false
-    },
-    current_odo: {
-      type: DataTypes.INTEGER,
-      allowNull: false
-    },
-    status: {
-      type: DataTypes.STRING(50),
-      allowNull: false,
-      defaultValue: 'INSPECTING'
-    },
-    entry_time: {
-      type: DataTypes.DATE,
-      allowNull: false,
-      defaultValue: DataTypes.NOW
-    },
-    estimated_finish_time: DataTypes.DATE,
-    promised_finish_time: DataTypes.DATE,
-    actual_finish_time: DataTypes.DATE,
-    exit_time: DataTypes.DATE
-  }, {
-    sequelize,
-    modelName: 'Service_Orders',
-    tableName: 'Service_Orders',
-    timestamps: true
-  });
+  );
   return Service_Orders;
 };

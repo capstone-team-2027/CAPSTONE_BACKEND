@@ -155,7 +155,7 @@ module.exports.importSparePart = async (manager_id, supplier_id, items) => {
         await part.update(
           {
             stock_quantity: quantity,
-            retail_price: retail_price ?? 0,
+            retail_price: retail_price,
           },
           {
             transaction: t,
