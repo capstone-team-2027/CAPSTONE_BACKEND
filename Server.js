@@ -5,7 +5,7 @@ const port = process.env.PORT || 3000;
 const bodyParser = require("body-parser");
 const passport = require("passport");
 const cors = require("cors");
-const configureGoogle = require("../CAPSTONE_BACKEND/src/config/google.config");
+const configureGoogle = require("../BACKEND/src/config/google.config");
 
 const whitelist = [
   "http://localhost:3000",
