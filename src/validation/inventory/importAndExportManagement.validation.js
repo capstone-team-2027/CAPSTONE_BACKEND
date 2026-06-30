@@ -33,9 +33,7 @@ const importSparePartSchema = z
       .min(2, "Tên có ít nhất 2 ký tự")
       .optional(),
 
-    brand: z
-      .string({ error: "Thương hiệu phải là chuỗi" })
-      .optional(),
+    brand: z.string({ error: "Thương hiệu phải là chuỗi" }).optional(),
 
     category_id: z
       .number({ error: "Danh mục phải là số" })
@@ -54,9 +52,7 @@ const importSparePartSchema = z
       .min(0, "Số km bảo hành không được âm")
       .optional(),
 
-    force: z
-      .boolean({ error: "force phải là true/false" })
-      .optional(),
+    force: z.boolean({ error: "force phải là true/false" }).optional(),
   })
   .superRefine((data, ctx) => {
     if (!data.part_id) {
@@ -92,4 +88,13 @@ const importReceiptSchema = z.object({
     .min(1, "Phiếu phải có ít nhất một mặt hàng"),
 });
 
-module.exports = { importReceiptSchema };
+const approveExportSchema = z.object({
+  quotationId: z
+    .number({
+      error: (issue) =>
+        issue.input == null ? "Báo giá là bắt buộc" : "Báo giá phải là số",
+    })
+    .int("Báo giá không hợp lệ")
+    .positive("Báo giá không hợp lệ"),
+});
+module.exports = { importReceiptSchema, approveExportSchema };

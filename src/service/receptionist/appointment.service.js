@@ -140,6 +140,7 @@ module.exports.getAppointmentByKey = async (key) => {
 };
 
 module.exports.receiveAppointment = async (key) => {
+    console.log("chạy vào tiếp nhận xe")
     const appointment = await db.Appointments.findByPk(key);
     if (!appointment) {
         throw { status: 404, message: "Lịch hẹn không tồn tại" };

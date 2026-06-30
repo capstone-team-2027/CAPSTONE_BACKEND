@@ -5,7 +5,12 @@ module.exports = (sequelize, DataTypes) => {
   class Task extends Model {
     static associate(models) {
       if (models.Service_Orders) {
-        Task.belongsTo(models.Service_Orders, { foreignKey: 'service_order_id', as: 'serviceOrder' });
+        Task.belongsTo(models.Service_Orders, { 
+          foreignKey: 'service_order_id', 
+          as: 'serviceOrder',
+          onDelete: 'CASCADE',
+          onUpdate: 'CASCADE'
+        });
       }
       if (models.Service_Catalog) {
         Task.belongsTo(models.Service_Catalog, { foreignKey: 'service_catalog_id', as: 'catalog' });

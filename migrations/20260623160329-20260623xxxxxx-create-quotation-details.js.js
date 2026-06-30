@@ -1,52 +1,59 @@
 'use strict';
+
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up(queryInterface, Sequelize) {
-    await queryInterface.createTable('Appointments', {
+    await queryInterface.createTable('Quotation_Details', {
       id: {
         allowNull: false,
         autoIncrement: true,
         primaryKey: true,
         type: Sequelize.INTEGER
       },
-      customer_id: {
+      quotation_id: {
         type: Sequelize.INTEGER,
         allowNull: false,
         references: {
-          model: 'Customers',
+          model: 'Quotations',
           key: 'id'
         },
         onUpdate: 'CASCADE',
-        onDelete: 'RESTRICT'
+        onDelete: 'CASCADE'
       },
-      vehicle_id: {
+      service_catalog_id: {
         type: Sequelize.INTEGER,
-        allowNull: true, //  xe
+        allowNull: true,
         references: {
-          model: 'Vehicles',
+          model: 'Service_Catalogs',
           key: 'id'
         },
         onUpdate: 'CASCADE',
-        onDelete: 'RESTRICT'
+        onDelete: 'SET NULL'
       },
-      booking_type: {
-        type: Sequelize.STRING(50),
-        allowNull: false, // 🔥 THÊM MỚI: Bắt buộc truyền lên là SPECIFIC hoặc CONSULTATION
+      spare_part_id: {
+        type: Sequelize.INTEGER,
+        allowNull: true,
+        references: {
+          model: 'Spare_Parts',
+          key: 'id'
+        },
+        onUpdate: 'CASCADE',
+        onDelete: 'SET NULL'
       },
-      scheduled_time: {
-        type: Sequelize.DATE,
+      quantity: {
+        type: Sequelize.INTEGER,
+        allowNull: false,
+        defaultValue: 1
+      },
+      unit_price: {
+        type: Sequelize.DECIMAL(12, 2),
         allowNull: false
       },
-      notes: {
-        type: Sequelize.TEXT,
-        allowNull: true, // 🔥 THÊM MỚI: Rất quan trọng khi booking_type là CONSULTATION (khách mô tả bệnh)
+      amount: {
+        type: Sequelize.DECIMAL(12, 2),
+        allowNull: false
       },
-      status: {
-        type: Sequelize.STRING(50),
-        allowNull: false,
-        defaultValue: 'CONFIRMED'
-      },
-      created_at: {
+      createdAt: {
         allowNull: false,
         type: Sequelize.DATE,
         defaultValue: Sequelize.NOW
@@ -58,7 +65,8 @@ module.exports = {
       }
     });
   },
+
   async down(queryInterface, Sequelize) {
-    await queryInterface.dropTable('Appointments');
+    await queryInterface.dropTable('Quotation_Details');
   }
 };

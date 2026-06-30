@@ -23,6 +23,24 @@ module.exports.login = async (req, res) => {
     });
   }
 };
+exports.googleCallback = async (req, res) => {
+  try {
+    const profile = req.user; 
+    const result = await authService.loginWithGoogle(profile);
+
+    const userParam = encodeURIComponent(JSON.stringify(result.user));
+
+    res.redirect(
+      `${process.env.FRONTEND_URL}/oauth-success` +
+        `?accessToken=${result.accessToken}` +
+        `&refreshToken=${result.refreshToken}` +
+        `&user=${userParam}`
+    );
+  } catch (error) {
+    console.error("Google login error:", error);
+    res.redirect(`${process.env.FRONTEND_URL}/login?error=google_failed`);
+  }
+};
 
 module.exports.register = async (req, res) => {
   try {

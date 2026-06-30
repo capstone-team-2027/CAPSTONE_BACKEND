@@ -41,6 +41,11 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: false,
       defaultValue: 30 // Đơn vị: Phút. Mặc định là 30 phút nếu không nhập
     },
+    labor_price: {
+      type: DataTypes.DECIMAL(12, 2),
+      allowNull: true,
+      defaultValue: 0
+    },
     is_active: {
       type: DataTypes.BOOLEAN,
       allowNull: false,

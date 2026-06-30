@@ -1,13 +1,13 @@
 const mockCreatePartCategory = jest.fn();
 const mockGetPartCategory = jest.fn();
 const mockUpdatePartCategory = jest.fn();
-jest.mock("../../../service/inventory/sparePartCategory.service", () => ({
+jest.mock("../../../service/inventory/sparePartCategoryManagement.service", () => ({
   createPartCategory: mockCreatePartCategory,
   getPartCategory: mockGetPartCategory,
   updatePartCategory: mockUpdatePartCategory,
 }));
 
-const controller = require("../../../controller/inventory/sparePartCategory.controller");
+const controller = require("../../../controller/inventory/sparePartCategoryManagement.controller");
 
 const createMockResponse = () => {
   const res = {};

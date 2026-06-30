@@ -231,7 +231,7 @@ module.exports.createAppointment = async (userId, data) => {
             await db.Appointment_Details.bulkCreate(detailsToCreate, { transaction });
         }
 
-        const needsServiceOrder = ['CUSTOMER_SPECIFIC', 'RECEPTIONIST_SPECIFIC'].includes(data.booking_type);
+        const needsServiceOrder = ['CUSTOMER_SPECIFIC', 'RECEPTIONIST_SPECIFIC', 'CUSTOMER_REPAIR', 'RECEPTIONIST_REPAIR'].includes(data.booking_type);
         if (needsServiceOrder) {
             const recRole = await db.Role.findOne({ where: { roleCode: 'RECEPTIONIST' }, transaction });
             let receptionistId = 1;
@@ -264,45 +264,61 @@ module.exports.createAppointment = async (userId, data) => {
                 entry_time: new Date()
             }, { transaction });
 
-            if (data.booking_type === 'CUSTOMER_SPECIFIC' || data.booking_type === 'RECEPTIONIST_SPECIFIC') {
-                const techRole = await db.Role.findOne({ where: { roleCode: 'TECHNICIAN' }, transaction });
-                let technicianId = 1;
-                if (techRole) {
-                    const technicians = await db.User.findAll({ where: { roleId: techRole.id, status: 'ACTIVE' }, transaction });
-                    if (technicians.length > 0) {
-                        const technicianTasksCount = await Promise.all(technicians.map(async (tech) => {
-                            const count = await db.Task_Assignment.count({
-                                where: {
-                                    technician_id: tech.id,
-                                    status: { [Op.in]: ['ASSIGNED', 'IN_PROGRESS'] }
-                                },
-                                transaction
-                            });
-                            return { id: tech.id, count };
-                        }));
-                        technicianTasksCount.sort((a, b) => a.count - b.count);
-                        technicianId = technicianTasksCount[0].id;
-                    }
-                }
-
-                const taskCatalogs = [];
-                for (const d of allDetails) {
-                    if (d.catalog_id) {
-                        taskCatalogs.push(d.catalog_id);
-                    }
-                    if (d.combo_id) {
-                        const comboCatalogs = await db.Service_Combo_Catalogs.findAll({
-                            where: { combo_id: d.combo_id },
+            const techRole = await db.Role.findOne({ where: { roleCode: 'TECHNICIAN' }, transaction });
+            let technicianId = 1;
+            if (techRole) {
+                const technicians = await db.User.findAll({ where: { roleId: techRole.id, status: 'ACTIVE' }, transaction });
+                if (technicians.length > 0) {
+                    const technicianTasksCount = await Promise.all(technicians.map(async (tech) => {
+                        const count = await db.Task_Assignment.count({
+                            where: {
+                                technician_id: tech.id,
+                                status: { [Op.in]: ['ASSIGNED', 'IN_PROGRESS'] }
+                            },
                             transaction
                         });
-                        for (const cc of comboCatalogs) {
-                            taskCatalogs.push(cc.catalog_id);
-                        }
+                        return { id: tech.id, count };
+                    }));
+                    technicianTasksCount.sort((a, b) => a.count - b.count);
+                    technicianId = technicianTasksCount[0].id;
+                }
+            }
+
+            const taskCatalogs = [];
+            for (const d of allDetails) {
+                if (d.catalog_id) {
+                    taskCatalogs.push(d.catalog_id);
+                }
+                if (d.combo_id) {
+                    const comboCatalogs = await db.Service_Combo_Catalogs.findAll({
+                        where: { combo_id: d.combo_id },
+                        transaction
+                    });
+                    for (const cc of comboCatalogs) {
+                        taskCatalogs.push(cc.catalog_id);
                     }
                 }
+            }
 
-                const uniqueTaskCatalogs = [...new Set(taskCatalogs)];
+            const uniqueTaskCatalogs = [...new Set(taskCatalogs)];
 
+            if (uniqueTaskCatalogs.length === 0) {
+                // Tạo một task khám xe chung nếu không có dịch vụ cụ thể nào
+                const task = await db.Task.create({
+                    service_order_id: serviceOrder.id,
+                    service_catalog_id: null,
+                    status: 'PENDING'
+                }, { transaction });
+
+                await db.Task_Assignment.create({
+                    task_id: task.id,
+                    technician_id: technicianId,
+                    bay_id: bayId,
+                    role_in_task: 'LEAD',
+                    contribution_percent: 100,
+                    status: 'ASSIGNED'
+                }, { transaction });
+            } else {
                 for (const catalogId of uniqueTaskCatalogs) {
                     const task = await db.Task.create({
                         service_order_id: serviceOrder.id,
@@ -321,6 +337,7 @@ module.exports.createAppointment = async (userId, data) => {
                 }
             }
         }
+
 
         await transaction.commit();
 

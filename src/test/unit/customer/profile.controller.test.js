@@ -183,6 +183,8 @@ describe("Customer Profile Controller", () => {
     });
 
     it("should return 500 when avatar upload fails", async () => {
+      jest.spyOn(console, "error").mockImplementation(() => {});
+
       const req = {
         body: {},
         file: { buffer: Buffer.from("fake-image") },
@@ -212,6 +214,8 @@ describe("Customer Profile Controller", () => {
       expect(res.status).toHaveBeenCalledWith(500);
       expect(res.json).toHaveBeenCalledWith({ message: "Lỗi upload avatar" });
       expect(mockUpdateProfile).not.toHaveBeenCalled();
+
+      console.error.mockRestore();
     });
   });
 });
