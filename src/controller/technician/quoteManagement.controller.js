@@ -6,7 +6,7 @@ const {
 
 module.exports.createQuotation = async (req, res) => {
   try {
-    const { service_order_id, items, note } = req.body;
+    const { service_order_id, items, note, email } = req.body;
     const validation = createQuotationSchema.safeParse({
       service_order_id,
       items,
@@ -18,7 +18,7 @@ module.exports.createQuotation = async (req, res) => {
       });
     }
     const result = await quoteManagementService.createQuotation(
-      validation.data,
+      validation.data, email
     );
     return res.status(201).json({
       message: "Tạo báo giá thành công",

@@ -1,11 +1,24 @@
+const { email } = require("zod");
 const db = require("../../../models");
 const Quotation = db.Quotations;
 const QuotationDetail = db.Quotation_Details;
 const ServiceCatalog = db.Service_Catalog;
 const SparePart = db.Spare_Parts;
+const transporter = require("../../config/mailer.config");
+const {
+  quotationEmailTemplate,
+} = require("../../templates/quotation.template");
 
-module.exports.createQuotation = async (data) => {
-  return await db.sequelize.transaction(async (t) => {
+module.exports.sendQuotationEmail = async (email, quotation) => {
+  await transporter.sendMail({
+    from: process.env.EMAIL_USER,
+    to: email,
+    subject: "Báo giá sửa chữa xe của bạn",
+    html: quotationEmailTemplate(quotation),
+  });
+};
+module.exports.createQuotation = async (data, email) => {
+  const quotation = await db.sequelize.transaction(async (t) => {
     let totalAmount = 0;
     const detailsData = [];
     for (const item of data.items) {
@@ -60,6 +73,26 @@ module.exports.createQuotation = async (data) => {
     await QuotationDetail.bulkCreate(details, { transaction: t });
     return quotation;
   });
+  if (email) {
+    const fullQuotation = await Quotation.findByPk(quotation.id, {
+      include: [
+        {
+          model: QuotationDetail,
+          as: "items",
+          include: [
+            {
+              model: ServiceCatalog,
+              as: "catalog",
+              attributes: ["id", "service_name"],
+            },
+            { model: SparePart, as: "sparePart", attributes: ["id", "name"] },
+          ],
+        },
+      ],
+    });
+    await module.exports.sendQuotationEmail(email, fullQuotation);
+  }
+  return quotation;
 };
 
 module.exports.updateQuotation = async (id, data) => {
