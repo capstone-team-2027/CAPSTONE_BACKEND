@@ -8,15 +8,20 @@ const transporter = require("../../config/mailer.config");
 const {
   quotationEmailTemplate,
 } = require("../../templates/quotation.template");
+const { generateQuotationActionToken } = require("../../util/jwt.util");
 
 module.exports.sendQuotationEmail = async (email, quotation) => {
+  const token = generateQuotationActionToken(quotation.id);
+  const approveLink = `${process.env.BACKEND_URL}/api/customer/quotation/${quotation.id}/approve-link?token=${token}`;
+  const rejectLink = `${process.env.BACKEND_URL}/api/customer/quotation/${quotation.id}/reject-link?token=${token}`;
   await transporter.sendMail({
     from: process.env.EMAIL_USER,
     to: email,
     subject: "Báo giá sửa chữa xe của bạn",
-    html: quotationEmailTemplate(quotation),
+    html: quotationEmailTemplate(quotation, {}, approveLink, rejectLink),
   });
 };
+
 module.exports.createQuotation = async (data, email) => {
   const quotation = await db.sequelize.transaction(async (t) => {
     let totalAmount = 0;

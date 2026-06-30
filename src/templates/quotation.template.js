@@ -5,7 +5,7 @@ const STATUS_LABELS = {
   EXPORTED: "Đã xuất kho",
 };
 
-module.exports.quotationEmailTemplate = (quotation, customer = {}) => {
+module.exports.quotationEmailTemplate = (quotation, customer = {}, approveLink = "#", rejectLink = "#") => {
   const items = quotation.items || [];
   const statusLabel = STATUS_LABELS[quotation.status] || quotation.status;
   const itemRows = items
@@ -80,8 +80,8 @@ module.exports.quotationEmailTemplate = (quotation, customer = {}) => {
       </table>
       <p style="color: #444;">Vui lòng xác nhận báo giá để chúng tôi tiến hành sửa chữa:</p>
       <div style="text-align: center; margin: 24px 0;">
-        <a href="#" style="display: inline-block; padding: 12px 32px; margin: 0 8px; background: #34a853; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: bold;">Đồng ý</a>
-        <a href="#" style="display: inline-block; padding: 12px 32px; margin: 0 8px; background: #ea4335; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: bold;">Từ chối</a>
+        <a href="${approveLink}" style="display: inline-block; padding: 12px 32px; margin: 0 8px; background: #34a853; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: bold;">Đồng ý</a>
+        <a href="${rejectLink}" style="display: inline-block; padding: 12px 32px; margin: 0 8px; background: #ea4335; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: bold;">Từ chối</a>
       </div>
       <p style="color: #999; font-size: 12px; text-align: center; margin-top: 24px;">Vui lòng liên hệ garage nếu bạn có thắc mắc.</p>
     </div>
