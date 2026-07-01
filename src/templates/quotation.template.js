@@ -10,14 +10,15 @@ module.exports.quotationEmailTemplate = (quotation, customer = {}) => {
   const statusLabel = STATUS_LABELS[quotation.status] || quotation.status;
   const itemRows = items
     .map((item) => {
-      const name = item.catalog?.service_name || item.sparePart?.name || "—";
-      const type = item.service_catalog_id ? "Dịch vụ" : "Phụ tùng";
+      const name = item.sparePart?.name || "Tiền công sửa chữa";
+      const type = item.sparePart ? "Phụ tùng" : "Tiền công";
+      const price = item.sparePart ? item.unit_price : item.repair_price;
       return `
         <tr>
           <td style="padding: 10px; border: 1px solid #e0e0e0;">${name}</td>
           <td style="padding: 10px; border: 1px solid #e0e0e0;">${type}</td>
           <td style="padding: 10px; border: 1px solid #e0e0e0; text-align: center;">${item.quantity}</td>
-          <td style="padding: 10px; border: 1px solid #e0e0e0; text-align: right;">${Number(item.unit_price).toLocaleString("vi-VN")} VNĐ</td>
+          <td style="padding: 10px; border: 1px solid #e0e0e0; text-align: right;">${Number(price).toLocaleString("vi-VN")} VNĐ</td>
           <td style="padding: 10px; border: 1px solid #e0e0e0; text-align: right;">${Number(item.amount).toLocaleString("vi-VN")} VNĐ</td>
         </tr>
       `;

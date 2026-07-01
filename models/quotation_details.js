@@ -9,13 +9,6 @@ module.exports = (sequelize, DataTypes) => {
         as: 'quotation'
       });
 
-      if (models.Service_Catalog) {
-        this.belongsTo(models.Service_Catalog, {
-          foreignKey: 'service_catalog_id',
-          as: 'catalog'
-        });
-      }
-
       if (models.Spare_Parts) {
         this.belongsTo(models.Spare_Parts, {
           foreignKey: 'spare_part_id',
@@ -30,10 +23,6 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.INTEGER,
       allowNull: false
     },
-    service_catalog_id: {
-      type: DataTypes.INTEGER,
-      allowNull: true
-    },
     spare_part_id: {
       type: DataTypes.INTEGER,
       allowNull: true
@@ -45,7 +34,11 @@ module.exports = (sequelize, DataTypes) => {
     },
     unit_price: {
       type: DataTypes.DECIMAL(12, 2),
-      allowNull: false
+      allowNull: true
+    },
+    repair_price: {
+      type: DataTypes.DECIMAL(12, 2),
+      allowNull: true
     },
     amount: {
       type: DataTypes.DECIMAL(12, 2),

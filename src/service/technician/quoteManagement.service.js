@@ -2,8 +2,8 @@ const { email } = require("zod");
 const db = require("../../../models");
 const Quotation = db.Quotations;
 const QuotationDetail = db.Quotation_Details;
-const ServiceCatalog = db.Service_Catalog;
 const SparePart = db.Spare_Parts;
+const Task = db.Task;
 const transporter = require("../../config/mailer.config");
 const {
   quotationEmailTemplate,
@@ -17,24 +17,19 @@ module.exports.sendQuotationEmail = async (email, quotation) => {
     html: quotationEmailTemplate(quotation),
   });
 };
+module.exports.getSpareParts = async () => {
+  const parts = await SparePart.findAll({
+    attributes: ["id", "sku", "name", "brand", "retail_price"],
+  });
+  return parts;
+};
 module.exports.createQuotation = async (data, email) => {
   const quotation = await db.sequelize.transaction(async (t) => {
     let totalAmount = 0;
     const detailsData = [];
     for (const item of data.items) {
       let unitPrice = 0;
-      if (item.service_catalog_id) {
-        const catalog = await ServiceCatalog.findByPk(item.service_catalog_id, {
-          transaction: t,
-        });
-        if (!catalog) {
-          throw {
-            status: 404,
-            message: `Dịch vụ #${item.service_catalog_id} không tồn tại`,
-          };
-        }
-        unitPrice = catalog.labor_price;
-      }
+      let repairPrice = 0;
       if (item.spare_part_id) {
         const part = await SparePart.findByPk(item.spare_part_id, {
           transaction: t,
@@ -46,20 +41,22 @@ module.exports.createQuotation = async (data, email) => {
           };
         }
         unitPrice = part.retail_price;
+      } else {
+        repairPrice = item.repair_price || 0;
       }
-      const amount = item.quantity * unitPrice;
+      const amount = item.quantity * (unitPrice || repairPrice);
       totalAmount += amount;
       detailsData.push({
-        service_catalog_id: item.service_catalog_id || null,
         spare_part_id: item.spare_part_id || null,
         quantity: item.quantity,
-        unit_price: unitPrice,
+        unit_price: unitPrice || 0,
+        repair_price: repairPrice || 0,
         amount,
       });
     }
     const quotation = await Quotation.create(
       {
-        service_order_id: data.service_order_id,
+        task_id: data.task_id || null,
         total_amount: totalAmount,
         status: "PENDING",
         note: data.note || null,
@@ -71,6 +68,16 @@ module.exports.createQuotation = async (data, email) => {
       quotation_id: quotation.id,
     }));
     await QuotationDetail.bulkCreate(details, { transaction: t });
+    if (data.task_id) {
+      await Task.update(
+        { status: "COMPLETED" },
+        { where: { id: data.task_id }, transaction: t },
+      );
+      await db.Task_Assignment.update(
+        { status: "COMPLETED" },
+        { where: { task_id: data.task_id }, transaction: t },
+      );
+    }
     return quotation;
   });
   if (email) {
@@ -80,11 +87,6 @@ module.exports.createQuotation = async (data, email) => {
           model: QuotationDetail,
           as: "items",
           include: [
-            {
-              model: ServiceCatalog,
-              as: "catalog",
-              attributes: ["id", "service_name"],
-            },
             { model: SparePart, as: "sparePart", attributes: ["id", "name"] },
           ],
         },
@@ -112,22 +114,10 @@ module.exports.updateQuotation = async (id, data) => {
       transaction: t,
     });
     let totalAmount = 0;
-    let unitPrice = 0;
     const detailsData = [];
     for (const item of data.items) {
       let unitPrice = 0;
-      if (item.service_catalog_id) {
-        const catalog = await ServiceCatalog.findByPk(item.service_catalog_id, {
-          transaction: t,
-        });
-        if (!catalog) {
-          throw {
-            status: 404,
-            message: `Dịch vụ #${item.service_catalog_id} không tồn tại`,
-          };
-        }
-        unitPrice = catalog.labor_price;
-      }
+      let repairPrice = 0;
       if (item.spare_part_id) {
         const part = await SparePart.findByPk(item.spare_part_id, {
           transaction: t,
@@ -139,15 +129,17 @@ module.exports.updateQuotation = async (id, data) => {
           };
         }
         unitPrice = part.retail_price;
+      } else {
+        repairPrice = item.repair_price || 0;
       }
-      const amount = item.quantity * unitPrice;
+      const amount = item.quantity * (unitPrice || repairPrice);
       totalAmount += amount;
       detailsData.push({
         quotation_id: quotation.id,
-        service_catalog_id: item.service_catalog_id || null,
         spare_part_id: item.spare_part_id || null,
         quantity: item.quantity,
-        unit_price: unitPrice,
+        unit_price: unitPrice || 0,
+        repair_price: repairPrice || 0,
         amount,
       });
     }
@@ -167,7 +159,7 @@ module.exports.getQuoteHistory = async () => {
   const result = await Quotation.findAll({
     attributes: [
       "id",
-      "service_order_id",
+      "task_id",
       "total_amount",
       "status",
       "approved_at",
@@ -178,13 +170,8 @@ module.exports.getQuoteHistory = async () => {
       {
         model: QuotationDetail,
         as: "items",
-        attributes: ["id", "quantity", "unit_price", "amount"],
+        attributes: ["id", "quantity", "unit_price", "repair_price", "amount"],
         include: [
-          {
-            model: ServiceCatalog,
-            as: "catalog",
-            attributes: ["id", "service_name"],
-          },
           {
             model: SparePart,
             as: "sparePart",
