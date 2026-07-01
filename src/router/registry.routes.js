@@ -38,7 +38,7 @@ module.exports = [
     prefix: "/api/inventory",
     middlewares: [
       checkClient.authenticate,
-      checkClient.authorizeRoles(ROLES.ADMIN),
+      checkClient.authorizeRoles(ROLES.INVENTORY_MANAGER),
     ],
     router: inventoryRoutes,
   },
@@ -46,7 +46,7 @@ module.exports = [
     prefix: "/api/receptionist",
     middlewares: [
       checkClient.authenticate,
-      checkClient.authorizeRoles(ROLES.ADMIN),
+      checkClient.authorizeRoles(ROLES.RECEPTIONIST),
     ],
     router: receptionistRoutes,
   },
@@ -54,7 +54,7 @@ module.exports = [
     prefix: "/api/technician",
     middlewares: [
       checkClient.authenticate,
-      checkClient.authorizeRoles(ROLES.ADMIN),
+      checkClient.authorizeRoles(ROLES.TECHNICIAN),
     ],
     router: technicianRoutes,
   },

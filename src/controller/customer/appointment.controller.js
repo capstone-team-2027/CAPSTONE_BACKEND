@@ -1,6 +1,7 @@
 const appointmentService = require("../../service/customer/appointment.service");
 const { createAppointmentSchema } = require("../../validation/customer/appointment.validation");
 const axios = require("axios");
+const FormData = require("form-data");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 module.exports.getAppointment = async (req, res) => {
     try {
@@ -96,90 +97,155 @@ module.exports.analyzeCarColor = async (req, res) => {
             return res.status(401).json({ message: "Unauthorized" });
         }
 
-        if (!req.file) {
+        if (!req.files || req.files.length === 0) {
             return res.status(400).json({
                 success: false,
-                message: "Vui lòng tải lên một hình ảnh"
+                message: "Vui lòng tải lên ít nhất một hình ảnh"
             });
         }
 
-        const apiKey = process.env.GEMINI_API_KEY;
+        const apiKey = process.env.PLATE_RECOGNIZER_TOKEN;
         if (!apiKey) {
             return res.status(400).json({
                 success: false,
-                message: "GEMINI_API_KEY chưa được cấu hình ở backend."
+                message: "PLATE_RECOGNIZER_TOKEN chưa được cấu hình ở backend (.env)."
             });
         }
+        let licensePlate = "";
+        let brand = "";
+        let model = "";
+        let color = "";
+        let description = "";
 
-        // Khởi tạo Google Gen AI client
-        const genAI = new GoogleGenerativeAI(apiKey);
-        const modelAI = genAI.getGenerativeModel({
-            model: "gemini-3.5-flash",
-            generationConfig: {
-                responseMimeType: "application/json"
+        const formatStr = (str) => {
+            if (!str) return "";
+            return str.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase());
+        };
+
+        const formatLicensePlate = (plate) => {
+            if (!plate) return "";
+            let p = plate.replace(/[^A-Z0-9]/ig, "").toUpperCase();
+
+            // Format 5 chữ số: 51A-123.45 (vd: 51A12345)
+            const match5 = p.match(/^(\d{2}[A-Z]\d?)(\d{3})(\d{2})$/);
+            if (match5) {
+                return `${match5[1]}-${match5[2]}.${match5[3]}`;
             }
-        });
 
-        const base64Image = req.file.buffer.toString("base64");
-        const mimeType = req.file.mimetype;
+            // Format 4 chữ số (biển cũ): 51A-1234 (vd: 51A1234)
+            const match4 = p.match(/^(\d{2}[A-Z]\d?)(\d{4})$/);
+            if (match4) {
+                return `${match4[1]}-${match4[2]}`;
+            }
 
-        const promptText = `Hãy đóng vai một chuyên gia phân tích hình ảnh và nhận diện ô tô tại garage. Phân tích kỹ bức ảnh chiếc xe được cung cấp và trả về một JSON object duy nhất, tuyệt đối không kèm theo markdown (như \`\`\`json ...) hay bất kỳ chữ giải thích nào khác ngoài cấu trúc JSON. 
-Cấu trúc JSON bắt buộc phải chính xác như sau:
-{
-  "color": "Màu sắc thực tế của xe (Ví dụ: Trắng, Đen, Đỏ, Xám...). CHÚ Ý NGHIÊM NGẶT: Hãy nhìn kỹ vùng sơn ở thân xe và nắp capo, tuyệt đối không được nhầm với màu sắc của cảnh vật xung quanh. Nếu xe màu trắng thì phải ghi là Trắng.",
-  "visual_description": "Một đoạn văn ngắn (2-3 câu) mô tả tự nhiên ngoại hình chiếc xe thay cho người nhập liệu. Tập trung vào kiểu dáng (ví dụ: xe gầm cao MPV/SUV hay sedan), hình dáng lưới tản nhiệt, cụm đèn trước và kiểu mâm xe để nhân viên dễ dàng nhận diện khi nhìn vào hệ thống."
-}
+            return p;
+        };
 
-Lưu ý quan trọng:
-1. Độ chính xác về màu sắc là ưu tiên số một. Không đoán mò, nhìn thấy màu gì ghi màu đó.
-2. Nếu trên xe có biển tên (ví dụ: tên dòng xe ở chỗ gắn biển số), hãy đọc và đưa đặc điểm đó vào đoạn 'visual_description' để tăng độ nhận diện.`;
+        // Lặp qua từng file, gửi cho Plate Recognizer đến khi nào tìm thấy biển số thì dừng (tiết kiệm API)
+        for (const file of req.files) {
+            const formData = new FormData();
+            formData.append("upload", file.buffer, {
+                filename: file.originalname || "image.jpg",
+                contentType: file.mimetype || "image/jpeg"
+            });
+            formData.append("mmc", "true");
 
-        // Gọi hàm generateContent qua SDK
-        const response = await modelAI.generateContent([
-            promptText,
-            {
-                inlineData: {
-                    mimeType: mimeType,
-                    data: base64Image
+            try {
+                const response = await axios.post(
+                    "https://api.platerecognizer.com/v1/plate-reader/",
+                    formData,
+                    {
+                        headers: {
+                            ...formData.getHeaders(),
+                            "Authorization": `Token ${apiKey}`
+                        }
+                    }
+                );
+
+                const data = response.data;
+                if (data.results && data.results.length > 0) {
+                    const result = data.results[0];
+                    if (result.plate) {
+                        licensePlate = formatLicensePlate(result.plate);
+
+                        // Lấy luôn các thông tin hãng/dòng/màu nếu có
+                        if (result.vehicle) {
+                            if (result.vehicle.make && result.vehicle.make.length > 0) {
+                                brand = formatStr(result.vehicle.make[0].make);
+                            }
+                            if (result.vehicle.make_model && result.vehicle.make_model.length > 0) {
+                                model = formatStr(result.vehicle.make_model[0].make_model);
+                                if (brand && model.toLowerCase().startsWith(brand.toLowerCase())) {
+                                    model = model.substring(brand.length).trim();
+                                }
+                            } else if (result.vehicle.type) {
+                                model = formatStr(result.vehicle.type);
+                            }
+
+                            if (result.vehicle.color && result.vehicle.color.length > 0) {
+                                const colorMap = {
+                                    "black": "Đen", "white": "Trắng", "silver": "Bạc", "gray": "Xám",
+                                    "red": "Đỏ", "blue": "Xanh dương", "green": "Xanh lá", "yellow": "Vàng",
+                                    "brown": "Nâu", "orange": "Cam", "gold": "Vàng óng", "purple": "Tím",
+                                    "beige": "Be", "pink": "Hồng"
+                                };
+                                const rawColor = result.vehicle.color[0].color.toLowerCase();
+                                color = colorMap[rawColor] || formatStr(rawColor);
+                            }
+                            if (result.vehicle.type) {
+                                description = `Loại xe: ${formatStr(result.vehicle.type)}`;
+                            }
+                        }
+
+                        // Đã tìm thấy biển số thì thoát khỏi vòng lặp ngay lập tức
+                        break;
+                    }
                 }
+            } catch (err) {
+                console.error("Lỗi khi quét Plate Recognizer cho 1 ảnh (bỏ qua):", err.message);
             }
-        ]);
-
-        const rawText = response.response.text() ? response.response.text().trim() : "";
-
-        if (!rawText) {
-            return res.status(500).json({
-                success: false,
-                message: "Không nhận được kết quả phân tích từ AI."
-            });
         }
 
-        let parsedData = {};
-        try {
-            parsedData = JSON.parse(rawText);
-        } catch (e) {
-            console.error("Lỗi parse JSON từ Gemini response:", e);
-            // Giữ lại đoạn fallback regex cũ của bạn để an toàn
-            const colorMatch = rawText.match(/"color":\s*"([^"]+)"/i);
-            const descMatch = rawText.match(/"visual_description":\s*"([^"]+)"/i);
-            const brandMatch = rawText.match(/"brand":\s*"([^"]+)"/i);
-            const modelMatch = rawText.match(/"model":\s*"([^"]+)"/i);
-            const plateMatch = rawText.match(/"license_plate":\s*"([^"]+)"/i);
+        // --- BƯỚC 2: Bọc lót bằng Gemini nếu Plate Recognizer không nhận diện được Hãng xe (Brand) ---
+        // Hoặc nhận diện model chung chung kiểu 'Sedan', 'SUV'
+        const isGenericModel = model && ["sedan", "suv", "hatchback", "truck", "van"].includes(model.toLowerCase());
+        if (!brand || brand.toLowerCase() === "unknown" || isGenericModel) {
+            try {
+                const apiKeyGemini = process.env.GEMINI_API_KEY;
+                if (apiKeyGemini) {
+                    const genAI = new GoogleGenerativeAI(apiKeyGemini);
+                    const modelGen = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
 
-            parsedData = {
-                color: colorMatch ? colorMatch[1] : "",
-                visual_description: descMatch ? descMatch[1] : rawText,
-                brand: brandMatch && brandMatch[1] !== "null" ? brandMatch[1] : "",
-                model: modelMatch && modelMatch[1] !== "null" ? modelMatch[1] : "",
-                license_plate: plateMatch && plateMatch[1] !== "null" ? plateMatch[1] : ""
-            };
+                    const prompt = "Bạn là một chuyên gia về xe hơi tại Việt Nam. Phân tích các bức ảnh xe này (có thể có nhiều góc chụp). Hãy nhận diện chính xác Hãng xe, Dòng xe và Màu sắc (kể cả các hãng nội địa như Vinfast). Trả về đúng 1 file JSON có cấu trúc: {\"brand\": \"tên hãng (vd: Vinfast, Toyota)\", \"model\": \"tên dòng xe (vd: Lux A2.0, Vios)\", \"color\": \"màu sắc bằng tiếng Việt\"}. Chỉ trả về JSON, không giải thích gì thêm.";
+
+                    const imageParts = req.files.map(file => ({
+                        inlineData: {
+                            data: file.buffer.toString("base64"),
+                            mimeType: file.mimetype || "image/jpeg"
+                        }
+                    }));
+
+                    const geminiResult = await modelGen.generateContent([prompt, ...imageParts]);
+                    const responseText = geminiResult.response.text();
+
+                    const jsonStrMatch = responseText.match(/\{[\s\S]*\}/);
+                    if (jsonStrMatch) {
+                        const geminiData = JSON.parse(jsonStrMatch[0]);
+                        if (geminiData.brand) brand = formatStr(geminiData.brand);
+                        if (geminiData.model) {
+                            model = formatStr(geminiData.model);
+                            // Xóa phần brand bị lặp trong model nếu Gemini vô tình ghép
+                            if (brand && model.toLowerCase().startsWith(brand.toLowerCase())) {
+                                model = model.substring(brand.length).trim();
+                            }
+                        }
+                        if (geminiData.color) color = formatStr(geminiData.color);
+                    }
+                }
+            } catch (geminiError) {
+                console.error("Lỗi khi bọc lót bằng Gemini:", geminiError.message);
+            }
         }
-
-        const color = parsedData.color || "";
-        const brand = parsedData.brand && parsedData.brand !== "null" ? parsedData.brand : "";
-        const model = parsedData.model && parsedData.model !== "null" ? parsedData.model : "";
-        const licensePlate = parsedData.license_plate && parsedData.license_plate !== "null" ? parsedData.license_plate : "";
-        const description = parsedData.visual_description || "";
 
         let formattedText = `* Màu sắc ngoại thất: ${color || "Chưa rõ"}`;
         if (brand) formattedText += `\n* Hãng xe: ${brand}`;
@@ -199,10 +265,10 @@ Lưu ý quan trọng:
             }
         });
     } catch (error) {
-        console.error("Gemini Error:", error.message);
+        console.error("Plate Recognizer Error:", error.response ? error.response.data : error.message);
         return res.status(500).json({
             success: false,
-            message: "Có lỗi xảy ra khi phân tích hình ảnh: " + error.message
+            message: "Có lỗi xảy ra khi gọi Plate Recognizer API: " + (error.response ? JSON.stringify(error.response.data) : error.message)
         });
     }
 };
@@ -235,6 +301,27 @@ module.exports.cancelAppointment = async (req, res) => {
             success: true,
             message: result.message,
             data: result.data
+        });
+    } catch (error) {
+        return res.status(error.status || 500).json({
+            success: false,
+            message: error.message || "Internal server error"
+        });
+    }
+};
+
+module.exports.getAppointmentVehicle = async (req, res) => {
+    try {
+        const requestUser = res.locals.user;
+        if (!requestUser) {
+            return res.status(401).json({ message: "Unauthorized" });
+        }
+
+        const result = await appointmentService.getAppointmentVehicles(requestUser.id);
+        return res.status(200).json({
+            success: true,
+            message: "Lấy danh sách xe khả dụng thành công",
+            data: result
         });
     } catch (error) {
         return res.status(error.status || 500).json({

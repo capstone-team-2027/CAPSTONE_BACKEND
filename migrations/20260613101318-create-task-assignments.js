@@ -32,7 +32,13 @@ module.exports = {
       },
       staff_shift_id: {
         type: Sequelize.INTEGER,
-        allowNull: true
+        allowNull: true,
+        references: {
+          model: 'Shift_Templates',
+          key: 'id'
+        },
+        onUpdate: 'CASCADE',
+        onDelete: 'SET NULL'
       },
       bay_id: {
         type: Sequelize.INTEGER,

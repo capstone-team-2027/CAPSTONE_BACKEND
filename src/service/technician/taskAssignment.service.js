@@ -52,7 +52,8 @@ module.exports.getTaskAssignment = async (technicianId) => {
             {
                 model: db.Task,
                 as: 'tasks',
-                required: true, // Chỉ lấy Service Order có Task
+                required: true,
+                where: { status: ['PENDING', 'IN_PROGRESS'] },
                 include: [
                     {
                         model: db.Task_Assignment,
@@ -191,15 +192,6 @@ module.exports.startTask = async (taskAssignmentId, technicianId) => {
 
     if (!assignment) {
         throw { status: 404, message: "Không tìm thấy phân công công việc hoặc bạn không có quyền thực hiện." };
-    }
-
-    const appointment = assignment.task?.serviceOrder?.appointment;
-    if (!appointment) {
-        throw { status: 400, message: "Không tìm thấy lịch hẹn liên kết với phân công này." };
-    }
-
-    if (appointment.status !== 'WALK_IN' && appointment.booking_type !== 'WALK_IN') {
-        throw { status: 403, message: "Chỉ được phép bắt đầu công việc đối với những Lịch hẹn có trạng thái là WALK_IN." };
     }
 
     const serviceOrderId = assignment.task.service_order_id;

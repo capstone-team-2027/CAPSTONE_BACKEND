@@ -14,6 +14,9 @@ module.exports = (sequelize, DataTypes) => {
       if (models.Service_Bays) {
         Task_Assignment.belongsTo(models.Service_Bays, { foreignKey: 'bay_id', as: 'bay' });
       }
+      if (models.Shift_Templates) {
+        Task_Assignment.belongsTo(models.Shift_Templates, { foreignKey: 'staff_shift_id', as: 'staff_shift' });
+      }
     }
   }
 

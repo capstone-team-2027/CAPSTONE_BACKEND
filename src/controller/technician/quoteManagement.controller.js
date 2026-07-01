@@ -4,11 +4,24 @@ const {
   updateQuotationSchema,
 } = require("../../validation/technician/quoteManagement.validation");
 
+module.exports.getSpareParts = async (req, res) => {
+  try {
+    const result = await quoteManagementService.getSpareParts();
+    return res.status(200).json({
+      data: result,
+    });
+  } catch (error) {
+    return res.status(error.status || 500).json({
+      message: error.message || "Internal server error",
+    });
+  }
+};
+
 module.exports.createQuotation = async (req, res) => {
   try {
-    const { service_order_id, items, note } = req.body;
+    const { task_id, items, note, email } = req.body;
     const validation = createQuotationSchema.safeParse({
-      service_order_id,
+      task_id,
       items,
       note,
     });
@@ -18,7 +31,7 @@ module.exports.createQuotation = async (req, res) => {
       });
     }
     const result = await quoteManagementService.createQuotation(
-      validation.data,
+      validation.data, email
     );
     return res.status(201).json({
       message: "Tạo báo giá thành công",
