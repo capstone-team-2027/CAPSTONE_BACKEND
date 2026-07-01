@@ -2,16 +2,15 @@ const { z } = require("zod");
 
 const quotationDetailSchema = z
   .object({
-    service_catalog_id: z
-      .number({ error: "Dịch vụ phải là số" })
-      .int("Dịch vụ không hợp lệ")
-      .positive("Dịch vụ không hợp lệ")
-      .optional(),
-
     spare_part_id: z
       .number({ error: "Phụ tùng phải là số" })
       .int("Phụ tùng không hợp lệ")
       .positive("Phụ tùng không hợp lệ")
+      .optional(),
+
+    repair_price: z
+      .number({ error: "Giá sửa chữa phải là số" })
+      .min(0, "Giá sửa chữa không được âm")
       .optional(),
 
     quantity: z
@@ -21,30 +20,23 @@ const quotationDetailSchema = z
       })
       .int("Số lượng phải là số nguyên")
       .min(1, "Số lượng phải lớn hơn 0"),
-
-    unit_price: z
-      .number({
-        error: (issue) =>
-          issue.input == null ? "Đơn giá là bắt buộc" : "Đơn giá phải là số",
-      })
-      .min(0, "Đơn giá không được âm"),
   })
   .superRefine((data, ctx) => {
-    if (!data.service_catalog_id && !data.spare_part_id) {
+    if (!data.spare_part_id && (data.repair_price == null || data.repair_price === 0)) {
       ctx.addIssue({
         code: "custom",
-        path: ["service_catalog_id"],
-        message: "Phải có dịch vụ hoặc phụ tùng",
+        path: ["repair_price"],
+        message: "Phải có phụ tùng hoặc giá sửa chữa",
       });
     }
   });
 
 const createQuotationSchema = z.object({
-  service_order_id: z
-    .number({ error: "Lệnh sửa chữa phải là số" })
-    .int("Lệnh sửa chữa không hợp lệ")
-    .optional()
-    .default(1),
+  task_id: z
+    .number({ error: "Công việc phải là số" })
+    .int("Công việc không hợp lệ")
+    .positive("Công việc không hợp lệ")
+    .optional(),
 
   items: z
     .array(quotationDetailSchema)

@@ -16,8 +16,6 @@ router.put("/change-password", profileController.changePassword);
 router.patch("/quotation/:id/approve",quoteApprovalController.approveQuote);
 router.patch("/quotation/:id/reject",quoteApprovalController.rejectQuote);
 
-router.get("/quotation/:id/approve-link", quoteApprovalController.approveQuoteFromEmail);
-router.get("/quotation/:id/reject-link", quoteApprovalController.rejectQuoteFromEmail);
 
 router.get("/appointment", appointmentController.getAppointment);
 router.post("/appointment", appointmentController.createAppointment);

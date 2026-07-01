@@ -23,12 +23,12 @@ module.exports.rejectQuote = async (req,res) => {
 module.exports.approveQuoteFromEmail = async (req, res) => {
     try {
         const { id } = req.params;
-        const { token } = req.query;
+        const { token, email } = req.query;
         const decoded = verifyQuotationActionToken(token);
         if (String(decoded.quotationId) !== String(id)) {
             throw { status: 400, message: "Token không hợp lệ" };
         }
-        await quoteApprovalService.approveQuotation(id);
+        await quoteApprovalService.approveQuotation(id, email);
         return res.redirect(`${process.env.FRONTEND_URL}/quotation-result?status=approved`);
     } catch (error) {
         return res.redirect(`${process.env.FRONTEND_URL}/quotation-result?status=error`);
