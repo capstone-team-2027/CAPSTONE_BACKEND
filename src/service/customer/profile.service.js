@@ -1,8 +1,6 @@
 const db = require("../../../models");
 const User = db.User;
 const { normalizeVnPhone } = require("../../util/phone.util");
-const { uploadAvatar } = require("../../util/upload.util");
-const { Op } = require("sequelize");
 const bcrypt = require("bcrypt");
 module.exports.getProfile = async (userId) => {
     const user = await User.findOne({
@@ -34,6 +32,12 @@ module.exports.updateProfile = async (userId, payload) => {
     if (payload.fullName) updates.fullName = payload.fullName;
     if (payload.avatar) {
         updates.avatar = payload.avatar;
+    }
+    if (payload.email) {
+        updates.email = payload.email;
+    }
+    if (payload.phoneNumber) {
+        updates.phoneNumber = payload.phoneNumber;
     }
 
     await user.update(updates);
