@@ -69,21 +69,29 @@ module.exports.createServiceOrder = async (data, receptionistId) => {
         }
 
         // 3. Nếu KHÔNG có appointment_id (Khách vãng lai đến trực tiếp - có thể là khách cũ hoặc mới)
+        let currentBookingType = 'WALK_IN';
         if (!actualAppointmentId) {
             // Lấy customer_id từ xe
             const customerId = vehicle.customer_id;
+
+            // Tự động phân loại: nếu có chọn sẵn dịch vụ/combo thì là SPECIFIC, ngược lại là REPAIR
+            let autoBookingType = data.walk_in ? 'WALK_IN_REPAIR' : 'RECEPTIONIST_REPAIR';
+            if ((data.service_ids && data.service_ids.length > 0) || (data.combo_ids && data.combo_ids.length > 0)) {
+                autoBookingType = data.walk_in ? 'WALK_IN_SPECIFIC' : 'RECEPTIONIST_SPECIFIC';
+            }
 
             // Tạo Appointment cho khách đến trực tiếp
             const newAppointment = await db.Appointments.create({
                 customer_id: customerId,
                 vehicle_id: actualVehicleId,
-                booking_type: 'WALK_IN',
+                booking_type: autoBookingType,
                 scheduled_time: new Date(),
                 status: 'IN_PROGRESS',
-                notes: 'Tạo tự động cho khách đến trực tiếp tại Gara'
+                notes: data.notes || 'Tạo tự động cho khách đến trực tiếp tại Gara'
             }, { transaction });
 
             actualAppointmentId = newAppointment.id;
+            currentBookingType = autoBookingType;
 
             // Tạo Appointment_Details
             if (data.service_ids && data.service_ids.length > 0) {
@@ -158,6 +166,8 @@ module.exports.createServiceOrder = async (data, receptionistId) => {
                 throw { status: 404, message: "Lịch hẹn không tồn tại" };
             }
 
+            currentBookingType = appointment.booking_type;
+
             // Kiểm tra xem lịch hẹn đã được gán lệnh sửa chữa nào chưa
             const existingOrder = await db.Service_Orders.findOne({
                 where: { appointment_id: data.appointment_id },
@@ -167,8 +177,10 @@ module.exports.createServiceOrder = async (data, receptionistId) => {
                 throw { status: 400, message: "Lịch hẹn này đã được tạo lệnh sửa chữa" };
             }
 
-            // Cập nhật trạng thái lịch hẹn
-            await appointment.update({ status: 'IN_PROGRESS' }, { transaction });
+            await appointment.update({
+                status: 'IN_PROGRESS',
+                notes: data.notes !== undefined ? data.notes : appointment.notes
+            }, { transaction });
         }
 
         const serviceOrder = await db.Service_Orders.create({
@@ -182,9 +194,17 @@ module.exports.createServiceOrder = async (data, receptionistId) => {
             estimated_finish_time: data.estimated_finish_time ? new Date(data.estimated_finish_time) : null
         }, { transaction });
 
-        // 5. Tự động phân công thợ (Technician) rảnh rỗi nhất
+        //  const techRole = await db.Role.findOne({ where: { roleCode: 'TECHNICIAN' }, transaction });
+        // let technicianId = null;
+
+        // // Kiểm tra xem đây có phải là loại REPAIR không. Nếu có chữ REPAIR thì bỏ qua tự động gán thợ.
+        // const isRepair = currentBookingType.includes('REPAIR');
+
+        // if (techRole && !isRepair) {
+        // 5. Tự động phân công thợ (Technician) rảnh rỗi nhất (CHỈ DÀNH CHO BẢO DƯỠNG/DỊCH VỤ CỤ THỂ)
         const techRole = await db.Role.findOne({ where: { roleCode: 'TECHNICIAN' }, transaction });
         let technicianId = null;
+
         if (techRole) {
             const technicians = await db.User.findAll({ where: { roleId: techRole.id, status: 'ACTIVE' }, transaction });
             if (technicians.length > 0) {
@@ -222,10 +242,11 @@ module.exports.createServiceOrder = async (data, receptionistId) => {
 
         const uniqueTaskCatalogs = [...new Set(taskCatalogs)];
 
-        for (const catalogId of uniqueTaskCatalogs) {
+        if (uniqueTaskCatalogs.length === 0) {
+            // Khách sửa chữa chưa rõ bệnh -> Tạo một Task kiểm tra xe chung
             const task = await db.Task.create({
                 service_order_id: serviceOrder.id,
-                service_catalog_id: catalogId,
+                service_catalog_id: null,
                 status: 'PENDING'
             }, { transaction });
 
@@ -238,6 +259,25 @@ module.exports.createServiceOrder = async (data, receptionistId) => {
                     contribution_percent: 100,
                     status: 'ASSIGNED'
                 }, { transaction });
+            }
+        } else {
+            for (const catalogId of uniqueTaskCatalogs) {
+                const task = await db.Task.create({
+                    service_order_id: serviceOrder.id,
+                    service_catalog_id: catalogId,
+                    status: 'PENDING'
+                }, { transaction });
+
+                if (technicianId) {
+                    await db.Task_Assignment.create({
+                        task_id: task.id,
+                        technician_id: technicianId,
+                        bay_id: bayIdToUse || null,
+                        role_in_task: 'LEAD',
+                        contribution_percent: 100,
+                        status: 'ASSIGNED'
+                    }, { transaction });
+                }
             }
         }
 

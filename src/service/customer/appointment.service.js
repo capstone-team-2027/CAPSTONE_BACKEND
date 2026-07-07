@@ -153,29 +153,41 @@ module.exports.createAppointment = async (userId, data) => {
         if (!resolvedVehicleId && data.vehicle_plate) {
             let make = null;
             if (data.vehicle_brand) {
-                [make] = await db.Vehicle_Makes.findOrCreate({
-                    where: { make_name: data.vehicle_brand.trim() },
-                    defaults: { make_name: data.vehicle_brand.trim() },
+                const brandName = data.vehicle_brand.trim();
+                make = await db.Vehicle_Makes.findOne({
+                    where: db.sequelize.where(db.sequelize.fn('LOWER', db.sequelize.col('make_name')), brandName.toLowerCase()),
                     transaction
                 });
+                if (!make) {
+                    make = await db.Vehicle_Makes.create({ make_name: brandName }, { transaction });
+                }
             } else {
-                [make] = await db.Vehicle_Makes.findOrCreate({
+                make = await db.Vehicle_Makes.findOne({
                     where: { make_name: 'Khác' },
-                    defaults: { make_name: 'Khác' },
                     transaction
                 });
+                if (!make) {
+                    make = await db.Vehicle_Makes.create({ make_name: 'Khác' }, { transaction });
+                }
             }
 
             let modelName = data.vehicle_model ? data.vehicle_model.trim() : 'Khác';
-            const [model] = await db.Vehicle_Models.findOrCreate({
-                where: { make_id: make.id, model_name: modelName },
-                defaults: {
+            let model = await db.Vehicle_Models.findOne({
+                where: {
                     make_id: make.id,
-                    model_name: modelName,
-                    vehicle_type: 'Sedan'
+                    [db.Sequelize.Op.and]: [
+                        db.sequelize.where(db.sequelize.fn('LOWER', db.sequelize.col('model_name')), modelName.toLowerCase())
+                    ]
                 },
                 transaction
             });
+            if (!model) {
+                model = await db.Vehicle_Models.create({
+                    make_id: make.id,
+                    model_name: modelName,
+                    vehicle_type: 'Sedan'
+                }, { transaction });
+            }
 
             const [vehicle] = await db.Vehicles.findOrCreate({
                 where: { customer_id: customer.id, license_plate: data.vehicle_plate.trim() },
@@ -219,7 +231,8 @@ module.exports.createAppointment = async (userId, data) => {
             await db.Appointment_Details.bulkCreate(detailsToCreate, { transaction });
         }
 
-        if (data.booking_type === 'SPECIFIC') {
+        const needsServiceOrder = ['CUSTOMER_SPECIFIC', 'RECEPTIONIST_SPECIFIC', 'CUSTOMER_REPAIR', 'RECEPTIONIST_REPAIR'].includes(data.booking_type);
+        if (needsServiceOrder) {
             const recRole = await db.Role.findOne({ where: { roleCode: 'RECEPTIONIST' }, transaction });
             let receptionistId = 1;
             if (recRole) {
@@ -241,6 +254,16 @@ module.exports.createAppointment = async (userId, data) => {
                 bayId = bayUsageCount[0].id;
             }
 
+            const serviceOrder = await db.Service_Orders.create({
+                appointment_id: appointment.id,
+                vehicle_id: resolvedVehicleId,
+                receptionist_id: receptionistId,
+                bay_id: bayId,
+                current_odo: 0,
+                status: 'INSPECTING',
+                entry_time: new Date()
+            }, { transaction });
+
             const techRole = await db.Role.findOne({ where: { roleCode: 'TECHNICIAN' }, transaction });
             let technicianId = 1;
             if (techRole) {
@@ -261,16 +284,6 @@ module.exports.createAppointment = async (userId, data) => {
                 }
             }
 
-            const serviceOrder = await db.Service_Orders.create({
-                appointment_id: appointment.id,
-                vehicle_id: resolvedVehicleId,
-                receptionist_id: receptionistId,
-                bay_id: bayId,
-                current_odo: 0,
-                status: 'INSPECTING',
-                entry_time: new Date()
-            }, { transaction });
-
             const taskCatalogs = [];
             for (const d of allDetails) {
                 if (d.catalog_id) {
@@ -286,13 +299,14 @@ module.exports.createAppointment = async (userId, data) => {
                     }
                 }
             }
-            
+
             const uniqueTaskCatalogs = [...new Set(taskCatalogs)];
 
-            for (const catalogId of uniqueTaskCatalogs) {
+            if (uniqueTaskCatalogs.length === 0) {
+                // Tạo một task khám xe chung nếu không có dịch vụ cụ thể nào
                 const task = await db.Task.create({
                     service_order_id: serviceOrder.id,
-                    service_catalog_id: catalogId,
+                    service_catalog_id: null,
                     status: 'PENDING'
                 }, { transaction });
 
@@ -304,8 +318,26 @@ module.exports.createAppointment = async (userId, data) => {
                     contribution_percent: 100,
                     status: 'ASSIGNED'
                 }, { transaction });
+            } else {
+                for (const catalogId of uniqueTaskCatalogs) {
+                    const task = await db.Task.create({
+                        service_order_id: serviceOrder.id,
+                        service_catalog_id: catalogId,
+                        status: 'PENDING'
+                    }, { transaction });
+
+                    await db.Task_Assignment.create({
+                        task_id: task.id,
+                        technician_id: technicianId,
+                        bay_id: bayId,
+                        role_in_task: 'LEAD',
+                        contribution_percent: 100,
+                        status: 'ASSIGNED'
+                    }, { transaction });
+                }
             }
         }
+
 
         await transaction.commit();
 
@@ -412,4 +444,68 @@ module.exports.cancelAppointment = async (userId, appointmentId) => {
     appointment.status = 'CANCELLED';
     await appointment.save();
     return { message: "Hủy lịch hẹn thành công", data: appointment };
+};
+
+module.exports.getAppointmentVehicles = async (userId) => {
+    const customer = await db.Customers.findOne({ where: { user_id: userId } });
+    if (!customer) {
+        throw { status: 404, message: "Hồ sơ khách hàng không tồn tại" };
+    }
+
+    // Lấy tất cả xe của khách hàng
+    const vehicles = await db.Vehicles.findAll({
+        where: { customer_id: customer.id },
+        include: [
+            {
+                model: db.Vehicle_Models,
+                as: 'model',
+                attributes: ['id', 'model_name', 'vehicle_type'],
+                include: [
+                    {
+                        model: db.Vehicle_Makes,
+                        as: 'make',
+                        attributes: ['id', 'make_name']
+                    }
+                ]
+            }
+        ]
+    });
+
+    if (!vehicles || vehicles.length === 0) return [];
+
+    const availableVehicles = [];
+
+    for (const vehicle of vehicles) {
+        // Kiểm tra xem xe có đang có lịch hẹn chờ xử lý hoặc đang xử lý không
+        const activeAppointment = await db.Appointments.findOne({
+            where: {
+                vehicle_id: vehicle.id,
+                status: { [db.Sequelize.Op.in]: ['PENDING', 'CONFIRMED'] }
+            }
+        });
+
+        // Kiểm tra xem xe có đang nằm trong xưởng sửa chữa không
+        const activeServiceOrder = await db.Service_Orders.findOne({
+            where: {
+                vehicle_id: vehicle.id,
+                status: { [db.Sequelize.Op.in]: ['INSPECTING', 'WAITING_FOR_PARTS', 'IN_PROGRESS'] }
+            }
+        });
+
+        const vehicleData = vehicle.toJSON();
+
+        if (activeAppointment) {
+            vehicleData.isDisabled = true;
+            vehicleData.disableReason = 'Xe đang có lịch hẹn chờ xử lý';
+        } else if (activeServiceOrder) {
+            vehicleData.isDisabled = true;
+            vehicleData.disableReason = 'Xe đang được sửa tại xưởng';
+        } else {
+            vehicleData.isDisabled = false;
+        }
+
+        availableVehicles.push(vehicleData);
+    }
+
+    return availableVehicles;
 };

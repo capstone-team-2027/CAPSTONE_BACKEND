@@ -6,8 +6,8 @@ const createAppointmentSchema = z.object({
     .int("ID xe phải là số nguyên")
     .optional()
     .nullable(),
-  booking_type: z.enum(["SPECIFIC", "CONSULTATION"], {
-    errorMap: () => ({ message: "Loại đặt lịch phải là SPECIFIC hoặc CONSULTATION" }),
+  booking_type: z.enum(["CUSTOMER_SPECIFIC", "CUSTOMER_REPAIR", "RECEPTIONIST_SPECIFIC", "RECEPTIONIST_REPAIR", "CONSULTATION"], {
+    errorMap: () => ({ message: "Loại đặt lịch không hợp lệ" }),
   }),
   scheduled_time: z
     .string({ required_error: "Thời gian hẹn là bắt buộc" })

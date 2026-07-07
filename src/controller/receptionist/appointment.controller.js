@@ -46,6 +46,7 @@ module.exports.getAppointmentByKey = async (req, res) => {
 
 module.exports.receiveAppointment = async (req, res) => {
     try {
+        console.log("chạy vào tiêp nhận xe")
         const requestUser = res.locals.user;
         if (!requestUser) {
             return res.status(401).json({ message: "Unauthorized" });

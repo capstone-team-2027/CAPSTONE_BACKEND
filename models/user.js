@@ -38,6 +38,12 @@ module.exports = (sequelize, DataTypes) => {
           as: "notifications",
         });
       }
+      if (models.Shift_Templates) {
+        User.hasMany(models.Shift_Templates, {
+          foreignKey: 'user_id',
+          as: 'shiftTemplates'
+        });
+      }
 
       // 1-n : hasMany
     }
@@ -69,7 +75,7 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: true,
         unique: true,
         validate: {
-          isNumeric: true, 
+          isNumeric: true,
           len: [10, 15],
         },
       },
@@ -77,7 +83,7 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.STRING,
         allowNull: true,
         validate: {
-          notEmpty: true, 
+          notEmpty: true,
         },
       },
       fullName: {
@@ -107,12 +113,12 @@ module.exports = (sequelize, DataTypes) => {
         defaultValue: false,
       },
     },
+
     {
       sequelize,
-      modelName: "User",
-      tableName: "Users",
+      modelName: 'User',
+      tableName: 'Users',
       timestamps: true,
-    },
-  );
+    });
   return User;
 };

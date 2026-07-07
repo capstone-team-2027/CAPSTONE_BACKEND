@@ -44,3 +44,15 @@ module.exports.verifyRefreshToken = (token) => {
         process.env.REFRESH_TOKEN_KEY
     );
 };
+
+module.exports.generateQuotationActionToken = (quotationId) => {
+    return jwt.sign(
+        { quotationId },
+        process.env.ACCESS_TOKEN_KEY,
+        { expiresIn: "7d" }
+    );
+};
+
+module.exports.verifyQuotationActionToken = (token) => {
+    return jwt.verify(token, process.env.ACCESS_TOKEN_KEY);
+};
