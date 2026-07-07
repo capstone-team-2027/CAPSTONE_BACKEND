@@ -3,12 +3,13 @@ const { Op } = require("sequelize");
 const InventoryLog = db.Inventory_Logs;
 const InventoryBatch = db.Inventory_Batches;
 const SparePart = db.Spare_Parts;
+const PartCategory = db.Part_Categories;
 const Supplier = db.Suppliers;
 const User = db.User;
 const Quotation = db.Quotations;
 const QuotationDetail = db.Quotation_Details;
-
 const sparePartService = require("../../service/inventory/sparePartManagement.service");
+const geminiClient = require("../../config/gemini.config");
 
 const normalizeName = (str) =>
   (str || "")
@@ -34,6 +35,52 @@ function similarity(a, b) {
           : Math.min(m[i - 1][j - 1], m[i][j - 1], m[i - 1][j]) + 1;
   return 1 - m[b.length][a.length] / Math.max(a.length, b.length);
 }
+
+module.exports.scanInvoice = async (imageBase64, mimeType) => {
+  const [categories, suppliers] = await Promise.all([
+    db.Spare_Part_Categories.findAll({ attributes: ["id", "name"] }),
+    db.Suppliers.findAll({ attributes: ["id", "name"] }),
+  ]);
+  const categoryList = categories.map((c) => `- ${c.name} (id: ${c.id})`).join("\n");
+  const supplierList = suppliers.map((s) => `- ${s.name} (id: ${s.id})`).join("\n");
+  const model = geminiClient.getGenerativeModel({ model: "gemini-2.5-flash" });
+  const result = await model.generateContent([
+    {
+      inlineData: {
+        mimeType: mimeType,
+        data: imageBase64,
+      },
+    },
+    `Đây là hóa đơn nhập kho phụ tùng ô tô.
+    Danh sách category hiện có:
+    ${categoryList}
+    Danh sách nhà cung cấp hiện có:
+    ${supplierList}
+    So sánh tên nhà cung cấp trên hóa đơn với danh sách trên:
+    - Khớp chính xác (chỉ khác hoa thường): supplier_match = "exact", supplier_id = id tương ứng, supplier_suggestion = null
+    - Tên gần giống nhưng không chắc: supplier_match = "similar", supplier_id = null, supplier_suggestion = { "id": id, "name": tên }
+    - Không tìm thấy: supplier_match = "none", supplier_id = null, supplier_suggestion = null
+    Trả về JSON theo đúng format sau, không giải thích gì thêm:
+    {
+      "supplier_name": "tên trên hóa đơn",
+      "supplier_id": null,
+      "supplier_match": "exact | similar | none",
+      "supplier_suggestion": { "id": 1, "name": "tên gần giống" } hoặc null,
+      "items": [
+        {
+          "name": "tên phụ tùng",
+          "brand": "thương hiệu nếu có, hoặc null",
+          "quantity": số_lượng,
+          "unit_price": đơn_giá_số,
+          "category_id": id_category_phù_hợp_hoặc_null
+        }
+      ]
+    }`,
+  ]);
+  const text = result.response.text().trim();
+  const json = JSON.parse(text.replace(/```json|```/g, "").trim());
+  return json;
+};
 
 module.exports.importSparePart = async (manager_id, supplier_id, items) => {
   return await db.sequelize.transaction(async (t) => {
@@ -331,7 +378,7 @@ module.exports.approveExportByQuotation = async (quotationId, managerId) => {
       });
     }
     await InventoryLog.bulkCreate(logsData, { transaction: t });
-        await quotation.update({ status: "EXPORTED" }, { transaction: t });
+    await quotation.update({ status: "EXPORTED" }, { transaction: t });
     return { receipt_code, quotation_id: quotationId };
   });
 };

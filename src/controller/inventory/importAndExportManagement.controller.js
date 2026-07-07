@@ -3,6 +3,23 @@ const {
   importReceiptSchema,
   approveExportSchema,
 } = require("../../validation/inventory/importAndExportManagement.validation");
+const scanInvoiceService = require("../../service/inventory/importAndExportManagement.service");
+
+module.exports.scanInvoice = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: "Vui lòng upload ảnh hóa đơn" });
+    }
+    const imageBase64 = req.file.buffer.toString("base64");
+    const mimeType = req.file.mimetype;
+    const result = await scanInvoiceService.scanInvoice(imageBase64, mimeType);
+    return res.status(200).json({ data: result });
+  } catch (error) {
+    return res.status(error.status || 500).json({
+      message: error.message || "Internal server error",
+    }); 
+  }
+};
 
 module.exports.importSparePart = async (req, res) => {
   try {
