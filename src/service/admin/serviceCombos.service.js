@@ -109,14 +109,47 @@ module.exports.createServiceCombo = async (
   return createdCombo;
 };
 
-module.exports.listServiceCombos = async (filters = {}) => {
-  const combos = await Service_Combo.findAll({
-    where: buildComboWhere(filters),
+module.exports.listServiceCombos = async (options = {}) => {
+  const { page, limit, q, all, is_active } = options;
+
+  const where = buildComboWhere({ q, is_active });
+
+  const queryOptions = {
+    where,
     attributes: ["id", "combo_name", "description", "is_active", "createdAt", "updatedAt"],
     include: buildComboInclude(),
     order: [["createdAt", "DESC"]],
+    distinct: true,
+  };
+
+  if (all || !page) {
+    const combos = await Service_Combo.findAll(queryOptions);
+    return combos;
+  }
+
+  const pageNum = Number(page) || 1;
+  const limitNum = Number(limit) || 20;
+  const offsetNum = (pageNum - 1) * limitNum;
+
+  queryOptions.limit = limitNum;
+  queryOptions.offset = offsetNum;
+
+  const { count, rows } = await Service_Combo.findAndCountAll(queryOptions);
+
+  const activeCount = await Service_Combo.count({
+    where: {
+      ...where,
+      is_active: true
+    }
   });
-  return combos;
+
+  return {
+    page: pageNum,
+    limit: limitNum,
+    total: count,
+    totalActive: activeCount,
+    items: rows,
+  };
 };
 
 module.exports.updateServiceCombo = async (

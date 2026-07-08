@@ -10,10 +10,12 @@ jest.mock("../../../service/admin/serviceCombos.service", () => ({
 
 const mockCreateServiceComboSchema = { safeParse: jest.fn() };
 const mockUpdateServiceComboSchema = { safeParse: jest.fn() };
+const mockViewServiceComboSchema = { safeParse: jest.fn().mockReturnValue({ success: true, data: {} }) };
 
 jest.mock("../../../validation/admin/serviceCombos.validation", () => ({
   createServiceComboSchema: mockCreateServiceComboSchema,
   updateServiceComboSchema: mockUpdateServiceComboSchema,
+  viewServiceComboSchema: mockViewServiceComboSchema,
 }));
 
 const controller = require("../../../controller/admin/serviceCombos.controller");
