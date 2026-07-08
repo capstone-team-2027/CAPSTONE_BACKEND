@@ -10,7 +10,6 @@ const configureGoogle = require("././src/config/google.config");
 const whitelist = [
   "http://localhost:3000",
   "http://localhost:5173",
-  'http://192.168.1.18:5173',
   "https://agm-garage.id.vn",
   "https://www.agm-garage.id.vn"
 ];
@@ -85,6 +84,6 @@ ROUTES.forEach((route) => {
   }
 });
 
-server.listen(port, '0.0.0.0', () => {
+server.listen(port, () => {
   console.log(`Example app listening on port ${port}`);
 });
