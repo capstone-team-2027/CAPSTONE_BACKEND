@@ -48,8 +48,54 @@ if (!category) {
   return part;
 };
 
-module.exports.getSpareParts = async () => {
-  const part = await SparePart.findAll({
+module.exports.getSpareParts = async (filters = {}) => {
+  const { search, brand, category_id, minPrice, maxPrice, page = 1, limit = 9 } = filters;
+  const where = {};
+
+  if (typeof search === "string" && search.trim()) {
+    const keyword = search.trim();
+    where[Op.or] = [
+      { name: { [Op.iLike]: `%${keyword}%` } },
+      { sku: { [Op.iLike]: `%${keyword}%` } },
+      { brand: { [Op.iLike]: `%${keyword}%` } },
+    ];
+  }
+
+  if (typeof brand === "string" && brand.trim()) {
+    const brands = brand
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean);
+
+    if (brands.length === 1) {
+      where.brand = brands[0];
+    } else if (brands.length > 1) {
+      where.brand = { [Op.in]: brands };
+    }
+  }
+
+  const parsedCategoryId = Number(category_id);
+  if (Number.isInteger(parsedCategoryId) && parsedCategoryId > 0) {
+    where.category_id = parsedCategoryId;
+  }
+
+  const parsedMinPrice = Number(minPrice);
+  const parsedMaxPrice = Number(maxPrice);
+  const hasMinPrice = Number.isFinite(parsedMinPrice) && parsedMinPrice >= 0;
+  const hasMaxPrice = Number.isFinite(parsedMaxPrice) && parsedMaxPrice >= 0;
+
+  if (hasMinPrice && hasMaxPrice) {
+    where.retail_price = { [Op.between]: [parsedMinPrice, parsedMaxPrice] };
+  } else if (hasMinPrice) {
+    where.retail_price = { [Op.gte]: parsedMinPrice };
+  } else if (hasMaxPrice) {
+    where.retail_price = { [Op.lte]: parsedMaxPrice };
+  }
+
+  const offset = (page - 1) * limit;
+
+  const part = await SparePart.findAndCountAll({
+    where,
     attributes: [
       "id",
       "sku",
@@ -67,8 +113,20 @@ module.exports.getSpareParts = async () => {
         attributes: ["id","category_name"],
       },
     ],
+    order: [["createdAt", "DESC"]],
+    limit,
+    offset,
   });
-  return part;
+
+  return {
+    data: part.rows,
+    pagination: {
+      page,
+      limit,
+      totalItems: part.count,
+      totalPages: part.count === 0 ? 0 : Math.ceil(part.count / limit),
+    },
+  };
 };
 module.exports.updateSparePart = async (
   id,
