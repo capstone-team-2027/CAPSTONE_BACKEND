@@ -1,7 +1,7 @@
 const svc = require("../../service/admin/serviceCategory.service");
 const { createCategorySchema, updateCategorySchema, viewCategorySchema } = require("../../validation/admin/serviceCategory.validation")
 
-module.exports.listServiceCategories = async (req, res) => {
+const handleCategorySearch = async (req, res) => {
   try {
     const result = viewCategorySchema.safeParse(req.query);
     if (!result.success) {
@@ -21,6 +21,9 @@ module.exports.listServiceCategories = async (req, res) => {
     return res.status(500).json({ success: false, message: err.message });
   }
 };
+
+module.exports.listServiceCategories = handleCategorySearch;
+module.exports.searchServiceCategories = handleCategorySearch;
 
 module.exports.createServiceCategories = async (req, res) => {
   try {

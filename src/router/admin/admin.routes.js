@@ -19,9 +19,11 @@ router.put("/staff/:userId", staffController.updateStaff);
 router.get("/service-categories", serviceCatalogController.getServiceCategories);
 router.post("/service-catalog", serviceCatalogController.createServiceCatalog);
 router.get("/service-catalog", serviceCatalogController.getServiceCatalog);
+router.get("/service-catalog/search", serviceCatalogController.searchServiceCatalog);
 router.patch("/service-catalog/:id", serviceCatalogController.updateServiceCatalog);
 
 router.get("/service-combos", serviceCombosController.getServiceCombos);
+router.get("/service-combos/search", serviceCombosController.searchServiceCombos);
 router.post("/service-combos", serviceCombosController.createServiceCombo);
 router.put("/service-combos/:id", serviceCombosController.updateServiceCombo);
 
@@ -32,6 +34,7 @@ router.put("/pricing-rules/:id", pricingRulesController.updatePricingRule);
 router.delete("/pricing-rules/:id", pricingRulesController.deletePricingRule);
 
 router.get("/service-category", controllerCategory.listServiceCategories);
+router.get("/service-category/search", controllerCategory.searchServiceCategories);
 router.post("/service-category", controllerCategory.createServiceCategories);
 router.put("/service-category/:id", controllerCategory.updateServiceCategories);
 router.delete("/service-category/:id", controllerCategory.removeServiceCategories);

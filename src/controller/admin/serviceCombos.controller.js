@@ -14,6 +14,16 @@ module.exports.getServiceCombos = async (req, res) => {
   }
 };
 
+module.exports.searchServiceCombos = async (req, res) => {
+  try {
+    const { q, is_active } = req.query;
+    const result = await serviceCombosService.listServiceCombos({ q, is_active });
+    return res.status(200).json({ data: result });
+  } catch (error) {
+    return res.status(error.status || 500).json({ message: error.message || "Internal server error" });
+  }
+};
+
 module.exports.createServiceCombo = async (req, res) => {
   try {
     const { combo_name, description, serviceCatalogIds, is_active } = req.body;
