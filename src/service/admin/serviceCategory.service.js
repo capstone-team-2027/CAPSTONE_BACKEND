@@ -50,6 +50,7 @@ module.exports.listCategories = async ({ page = 1, limit = 50, include_services 
 
   const where = buildCategoryWhere({ q, is_active });
   const total = await ServiceCategory.count({ where });
+  const totalActive = await ServiceCategory.count({ where: { ...where, is_active: true } });
   const items = await ServiceCategory.findAll({
     where,
     attributes: ["id", "category_name", "is_active", "createdAt", "updatedAt"],
@@ -59,7 +60,7 @@ module.exports.listCategories = async ({ page = 1, limit = 50, include_services 
     include,
   });
 
-  return { page, limit, total, items };
+  return { page, limit, total, totalActive, items };
 };
 
 module.exports.createCategories = async ({

@@ -70,9 +70,12 @@ module.exports.createServiceCatalog = async (category_id, service_name, descript
 };
 
 module.exports.getServiceCatalog = async (filters = {}) => {
-  const serviceCatalog = await Service_Catalog.findAll({
-    where: buildCatalogWhere(filters),
-    attributes: ["id", "category_id", "service_name", "description", "estimated_duration", "is_active"],
+  const { page, limit, all, ...rest } = filters;
+  const userWhere = buildCatalogWhere(rest);
+
+  const queryOptions = {
+    where: userWhere,
+    attributes: ["id", "category_id", "service_name", "description", "estimated_duration", "is_active", "createdAt", "updatedAt"],
     include: [
       {
         model: Service_Categories,
@@ -81,9 +84,36 @@ module.exports.getServiceCatalog = async (filters = {}) => {
       },
     ],
     order: [["createdAt", "DESC"]],
+  };
+
+  if (all || !page) {
+    const serviceCatalog = await Service_Catalog.findAll(queryOptions);
+    return serviceCatalog;
+  }
+
+  const pageNum = Number(page) || 1;
+  const limitNum = Number(limit) || 20;
+  const offsetNum = (pageNum - 1) * limitNum;
+
+  queryOptions.limit = limitNum;
+  queryOptions.offset = offsetNum;
+
+  const { count, rows } = await Service_Catalog.findAndCountAll(queryOptions);
+
+  const activeCount = await Service_Catalog.count({
+    where: {
+      ...userWhere,
+      is_active: true
+    }
   });
 
-  return serviceCatalog;
+  return {
+    page: pageNum,
+    limit: limitNum,
+    total: count,
+    totalActive: activeCount,
+    items: rows
+  };
 };
 
 module.exports.updateServiceCatalog = async (service_catalog_id, category_id, service_name, description, estimated_duration, is_active) => {
