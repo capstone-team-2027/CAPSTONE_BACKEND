@@ -48,7 +48,7 @@ describe("ServiceCombos Controller", () => {
       ];
       mockListServiceCombos.mockResolvedValue(fakeData);
 
-      const req = {};
+      const req = { query: {} };
       const res = createMockResponse();
 
       await controller.getServiceCombos(req, res);
@@ -63,13 +63,30 @@ describe("ServiceCombos Controller", () => {
       error.status = 500;
       mockListServiceCombos.mockRejectedValue(error);
 
-      const req = {};
+      const req = { query: {} };
       const res = createMockResponse();
 
       await controller.getServiceCombos(req, res);
 
       expect(res.status).toHaveBeenCalledWith(500);
       expect(res.json).toHaveBeenCalledWith({ message: "Database error" });
+    });
+
+    it("should forward query params (q, is_active) to service", async () => {
+      const fakeData = [{ id: 1, combo_name: "Combo X" }];
+      mockListServiceCombos.mockResolvedValue(fakeData);
+
+      const req = { query: { q: "search-term", is_active: "true" } };
+      const res = createMockResponse();
+
+      await controller.getServiceCombos(req, res);
+
+      expect(mockListServiceCombos).toHaveBeenCalledWith({
+        q: "search-term",
+        is_active: "true",
+      });
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith({ data: fakeData });
     });
   });
 
