@@ -7,7 +7,7 @@ const sparePartCategoryManagementController = require("../../controller/inventor
 const supplierManagementController = require("../../controller/inventory/supplierManagement.controller");
 const importAndExportManagementController = require("../../controller/inventory/importAndExportManagement.controller");
 
-router.post("/import/scan-invoice", upload.single("invoice"), importAndExportManagementController.scanInvoice);
+router.post("/import/scan-invoice", upload.array("invoices"), importAndExportManagementController.scanInvoice);
 router.get("/approved-quote", importAndExportManagementController.getApprovedQuotesWithParts);
 router.post("/export/:quotationId/approve", importAndExportManagementController.approveExportByQuotation);
 router.get("/export", importAndExportManagementController.viewExportHistory);

@@ -7,17 +7,20 @@ const scanInvoiceService = require("../../service/inventory/importAndExportManag
 
 module.exports.scanInvoice = async (req, res) => {
   try {
-    if (!req.file) {
-      return res.status(400).json({ message: "Vui lòng upload ảnh hóa đơn" });
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ message: "Vui lòng upload ít nhất 1 ảnh hóa đơn" });
     }
-    const imageBase64 = req.file.buffer.toString("base64");
-    const mimeType = req.file.mimetype;
-    const result = await scanInvoiceService.scanInvoice(imageBase64, mimeType);
+    const files = req.files.map((file) => ({
+      imageBase64: file.buffer.toString("base64"),
+      mimeType: file.mimetype,
+    }));
+    const result = await scanInvoiceService.scanInvoice(files);
     return res.status(200).json({ data: result });
   } catch (error) {
+    console.error("SCAN INVOICE ERROR:", error);
     return res.status(error.status || 500).json({
       message: error.message || "Internal server error",
-    }); 
+    });
   }
 };
 
@@ -32,7 +35,6 @@ module.exports.importSparePart = async (req, res) => {
       supplier_id,
       items,
     });
-
     if (!validation.success) {
       console.log(validation.error.issues);
       return res.status(400).json({
