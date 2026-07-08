@@ -20,6 +20,12 @@ module.exports = (sequelize, DataTypes) => {
         otherKey: 'combo_id',
         as: 'combos'
       });
+      if (models.Service_Catalog_Translations) {
+        this.hasMany(models.Service_Catalog_Translations, {
+          foreignKey: 'serviceCatalogId',
+          as: 'translations'
+        });
+      }
     }
   }
   Service_Catalog.init({

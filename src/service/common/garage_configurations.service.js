@@ -11,9 +11,9 @@ module.exports.getConfigurations = async () => {
 };
 
 module.exports.getAvailability = async (dateStr) => {
-    const shifts = await db.Garage_Shifts.findAll({
+    const shifts = await db.Shift_Slots.findAll({
         where: { is_active: true },
-        attributes: ['id', 'shift_name', 'start_time', 'end_time', 'is_active', 'createdAt', 'updatedAt'],
+        attributes: ['id', ['slot_name', 'shift_name'], 'start_time', 'end_time', 'is_active', 'createdAt', 'updatedAt'],
         order: [['start_time', 'ASC']]
     });
 

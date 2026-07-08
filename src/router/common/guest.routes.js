@@ -21,4 +21,6 @@ router.get("/availability", configController.getAvailability);
 router.get("/quotation/:id/approve-link", quoteApprovalController.approveQuoteFromEmail);
 router.get("/quotation/:id/reject-link", quoteApprovalController.rejectQuoteFromEmail);
 
+router.get("/check-license-plate", guestController.checkLicensePlate);
+
 module.exports = router;

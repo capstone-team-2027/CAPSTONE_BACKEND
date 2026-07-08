@@ -4,10 +4,32 @@ const Service_Catalog = db.Service_Catalog;
 const Service_Combo = db.Service_Combo;
 
 // Categories
-module.exports.getServiceCategories = async () => {
+module.exports.getServiceCategories = async (lang = 'vi') => {
+    const include = [];
+    if (lang !== 'vi' && db.Service_Category_Translations) {
+        include.push({
+            model: db.Service_Category_Translations,
+            as: 'translations',
+            where: { languageId: lang },
+            required: false
+        });
+    }
+
     const categories = await Service_Categories.findAll({
-        attributes: ['id', 'category_name']
+        attributes: ['id', 'category_name'],
+        include
     });
+
+    if (lang !== 'vi') {
+        return categories.map(cat => {
+            const raw = cat.toJSON();
+            if (raw.translations && raw.translations.length > 0) {
+                raw.category_name = raw.translations[0].name || raw.category_name;
+            }
+            delete raw.translations;
+            return raw;
+        });
+    }
     return categories;
 };
 
@@ -61,4 +83,11 @@ module.exports.getServiceCombos = async () => {
         order: [["createdAt", "DESC"]],
     });
     return combos;
+};
+
+module.exports.checkLicensePlate = async (licensePlate) => {
+    const vehicle = await db.Vehicles.findOne({
+        where: { license_plate: licensePlate }
+    });
+    return !!vehicle;
 };
