@@ -25,7 +25,15 @@ const updateServiceComboSchema = z.object({
   is_active: z.boolean({ required_error: "Trạng thái combo là bắt buộc" }),
 });
 
+const viewServiceComboSchema = z.object({
+  page: z.string().optional().transform(val => val ? parseInt(val, 10) : undefined),
+  limit: z.string().optional().transform(val => val ? parseInt(val, 10) : undefined),
+  q: z.string().optional(),
+  all: z.string().optional().transform(val => val === "true"),
+});
+
 module.exports = {
   createServiceComboSchema,
   updateServiceComboSchema,
+  viewServiceComboSchema,
 };

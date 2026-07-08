@@ -11,6 +11,19 @@ jest.mock("../../../validation/customer/profile.validation", () => ({
   updateProfileSchema: mockUpdateProfileSchema,
 }));
 
+const mockGenerateOtp = jest.fn();
+const mockStoreOtp = jest.fn();
+const mockVerifyOtp = jest.fn();
+const mockSendEmailOtp = jest.fn();
+const mockSendPhoneOtp = jest.fn();
+jest.mock("../../../util/otp.util", () => ({
+  generateOtp: mockGenerateOtp,
+  storeOtp: mockStoreOtp,
+  verifyOtp: mockVerifyOtp,
+  sendEmailOtp: mockSendEmailOtp,
+  sendPhoneOtp: mockSendPhoneOtp,
+}));
+
 const mockUploadStream = jest.fn((options, callback) => {
   return { _callback: callback };
 });
@@ -135,7 +148,7 @@ describe("Customer Profile Controller", () => {
       await controller.updateProfile(req, res);
 
       expect(res.status).toHaveBeenCalledWith(400);
-      expect(res.json).toHaveBeenCalledWith({ message: "Vui lòng cung cấp tên hoặc avatar" });
+      expect(res.json).toHaveBeenCalledWith({ message: "Vui lòng cung cấp tên, email, số điện thoại hoặc avatar" });
       expect(mockUpdateProfile).not.toHaveBeenCalled();
     });
 
@@ -216,6 +229,46 @@ describe("Customer Profile Controller", () => {
       expect(mockUpdateProfile).not.toHaveBeenCalled();
 
       console.error.mockRestore();
+    });
+
+    it("should request email OTP when adding a missing email", async () => {
+      const req = { body: { email: "new@example.com" } };
+      const res = createMockResponse();
+      res.locals.user = { id: 8, email: null, phoneNumber: null };
+
+      mockUpdateProfileSchema.safeParse.mockReturnValue({ success: true, data: { email: "new@example.com" } });
+      mockGenerateOtp.mockReturnValue("123456");
+      mockSendEmailOtp.mockResolvedValue({ sent: true });
+
+      await controller.updateProfile(req, res);
+
+      expect(mockGenerateOtp).toHaveBeenCalled();
+      expect(mockStoreOtp).toHaveBeenCalledWith("email", "new@example.com", "123456");
+      expect(mockSendEmailOtp).toHaveBeenCalledWith("new@example.com", "123456");
+      expect(res.status).toHaveBeenCalledWith(202);
+      expect(res.json).toHaveBeenCalledWith({
+        message: "Vui lòng nhập mã OTP để xác thực email",
+        data: { email: "new@example.com" },
+      });
+      expect(mockUpdateProfile).not.toHaveBeenCalled();
+    });
+
+    it("should update profile with email when OTP is verified", async () => {
+      const req = { body: { email: "new@example.com", otpCode: "123456" } };
+      const res = createMockResponse();
+      res.locals.user = { id: 9, email: null, phoneNumber: null };
+      const updatedProfile = { id: 9, email: "new@example.com" };
+
+      mockUpdateProfileSchema.safeParse.mockReturnValue({ success: true, data: { email: "new@example.com", otpCode: "123456" } });
+      mockVerifyOtp.mockReturnValue(true);
+      mockUpdateProfile.mockResolvedValue(updatedProfile);
+
+      await controller.updateProfile(req, res);
+
+      expect(mockVerifyOtp).toHaveBeenCalledWith("email", "new@example.com", "123456");
+      expect(mockUpdateProfile).toHaveBeenCalledWith(9, { email: "new@example.com" });
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith({ message: "Cập nhật thông tin thành công", data: updatedProfile });
     });
   });
 });

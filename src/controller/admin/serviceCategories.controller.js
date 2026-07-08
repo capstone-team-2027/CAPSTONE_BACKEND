@@ -1,7 +1,7 @@
 const svc = require("../../service/admin/serviceCategory.service");
 const { createCategorySchema, updateCategorySchema, viewCategorySchema } = require("../../validation/admin/serviceCategory.validation")
 
-module.exports.listServiceCategories = async (req, res) => {
+const handleCategorySearch = async (req, res) => {
   try {
     const result = viewCategorySchema.safeParse(req.query);
     if (!result.success) {
@@ -12,15 +12,18 @@ module.exports.listServiceCategories = async (req, res) => {
       return res.status(400).json({ success: false, errors });
     }
 
-    const { page, limit, include_services } = result.data;
+    const { page, limit, include_services, q, is_active } = result.data;
 
-    const data = await svc.listCategories({ page, limit, include_services });
+    const data = await svc.listCategories({ page, limit, include_services, q, is_active });
     return res.json({ success: true, data });
   } catch (err) {
     console.error("SERVICE COMBOS LIST ERROR:", err);
     return res.status(500).json({ success: false, message: err.message });
   }
 };
+
+module.exports.listServiceCategories = handleCategorySearch;
+module.exports.searchServiceCategories = handleCategorySearch;
 
 module.exports.createServiceCategories = async (req, res) => {
   try {
