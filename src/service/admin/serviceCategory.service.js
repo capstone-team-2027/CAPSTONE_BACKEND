@@ -13,15 +13,45 @@ const categoryIdAllowsNull =
   ServiceCatalog.rawAttributes.category_id &&
   ServiceCatalog.rawAttributes.category_id.allowNull === true;
 
-module.exports.listCategories = async ({ page = 1, limit = 50, include_services = false }) => {
+const normalizeBoolean = (value) => {
+  if (typeof value === "boolean") return value;
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === "true") return true;
+    if (normalized === "false") return false;
+  }
+  return undefined;
+};
+
+const buildCategoryWhere = ({ q, is_active } = {}) => {
+  const where = {};
+
+  const normalizedIsActive = normalizeBoolean(is_active);
+  if (normalizedIsActive !== undefined) {
+    where.is_active = normalizedIsActive;
+  }
+
+  if (q) {
+    const keyword = q.toString().trim();
+    if (keyword) {
+      where[Op.or] = [{ category_name: { [Op.iLike]: `%${keyword}%` } }];
+    }
+  }
+
+  return where;
+};
+
+module.exports.listCategories = async ({ page = 1, limit = 50, include_services = false, q, is_active } = {}) => {
   const offset = (page - 1) * limit;
   const include =
     include_services && ServiceCatalog
       ? [{ model: ServiceCatalog, as: "services" }]
       : [];
 
-  const total = await ServiceCategory.count();
+  const where = buildCategoryWhere({ q, is_active });
+  const total = await ServiceCategory.count({ where });
   const items = await ServiceCategory.findAll({
+    where,
     attributes: ["id", "category_name", "is_active", "createdAt", "updatedAt"],
     order: [["createdAt", "DESC"]],
     limit,
@@ -30,7 +60,7 @@ module.exports.listCategories = async ({ page = 1, limit = 50, include_services 
   });
 
   return { page, limit, total, items };
-}
+};
 
 module.exports.createCategories = async ({
   category_name,

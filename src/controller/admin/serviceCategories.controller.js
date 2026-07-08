@@ -12,9 +12,9 @@ module.exports.listServiceCategories = async (req, res) => {
       return res.status(400).json({ success: false, errors });
     }
 
-    const { page, limit, include_services } = result.data;
+    const { page, limit, include_services, q, is_active } = result.data;
 
-    const data = await svc.listCategories({ page, limit, include_services });
+    const data = await svc.listCategories({ page, limit, include_services, q, is_active });
     return res.json({ success: true, data });
   } catch (err) {
     console.error("SERVICE COMBOS LIST ERROR:", err);

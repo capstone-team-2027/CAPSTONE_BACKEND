@@ -1,6 +1,17 @@
+const { Op } = require("sequelize");
 const db = require("../../../models");
 const Service_Combo = db.Service_Combo;
 const Service_Catalog = db.Service_Catalog;
+
+const normalizeBoolean = (value) => {
+  if (typeof value === "boolean") return value;
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === "true") return true;
+    if (normalized === "false") return false;
+  }
+  return undefined;
+};
 
 const buildComboInclude = () => [
   {
@@ -24,6 +35,27 @@ const buildComboInclude = () => [
     ],
   },
 ];
+
+const buildComboWhere = ({ q, is_active } = {}) => {
+  const where = {};
+
+  const normalizedIsActive = normalizeBoolean(is_active);
+  if (normalizedIsActive !== undefined) {
+    where.is_active = normalizedIsActive;
+  }
+
+  if (q) {
+    const keyword = q.toString().trim();
+    if (keyword) {
+      where[Op.or] = [
+        { combo_name: { [Op.iLike]: `%${keyword}%` } },
+        { description: { [Op.iLike]: `%${keyword}%` } },
+      ];
+    }
+  }
+
+  return where;
+};
 
 module.exports.createServiceCombo = async (
   combo_name,
@@ -77,8 +109,9 @@ module.exports.createServiceCombo = async (
   return createdCombo;
 };
 
-module.exports.listServiceCombos = async () => {
+module.exports.listServiceCombos = async (filters = {}) => {
   const combos = await Service_Combo.findAll({
+    where: buildComboWhere(filters),
     attributes: ["id", "combo_name", "description", "is_active", "createdAt", "updatedAt"],
     include: buildComboInclude(),
     order: [["createdAt", "DESC"]],

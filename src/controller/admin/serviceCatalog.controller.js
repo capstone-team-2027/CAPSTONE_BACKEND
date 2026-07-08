@@ -32,7 +32,12 @@ module.exports.createServiceCatalog = async (req,res) => {
 
 module.exports.getServiceCatalog = async (req,res) => {
     try {
-        const result = await serviceCatalog.getServiceCatalog();
+        const { q, category_id, is_active } = req.query;
+        const result = await serviceCatalog.getServiceCatalog({
+            q,
+            category_id,
+            is_active,
+        });
         return res.status(200).json({
             data: result,
         });
