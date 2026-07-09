@@ -71,8 +71,7 @@ const enrichItems = async (items) => {
       let part = null;
       const normItem = normalizeName(item.name);
       console.log("AI name:", item.name, "| normalized:", normItem);
-console.log("DB parts:", allParts.map(p => normalizeName(p.name)));
-
+      console.log("DB parts:", allParts.map(p => normalizeName(p.name)));
       const sameBrand = (b1, b2) =>
         (b1 || "").trim().toLowerCase() === (b2 || "").trim().toLowerCase();
       const exactPart = allParts.find(

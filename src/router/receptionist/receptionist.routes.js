@@ -4,6 +4,12 @@ const appointmentController = require("../../controller/receptionist/appointment
 const serviceOrderController = require("../../controller/receptionist/serviceOrder.controller");
 const notificationController = require("../../controller/receptionist/notification.controller");
 const searchController = require("../../controller/receptionist/search.controller");
+const quoteManagementController = require("./../../controller/receptionist/quoteManagement.controller");
+
+router.post("/quote", quoteManagementController.createQuotation);
+router.patch("/quote/:id", quoteManagementController.updateQuotation);
+router.get("/quote", quoteManagementController.getQuoteHistory);
+router.get("/spare-parts", quoteManagementController.getSpareParts);
 
 router.get("/appointments", appointmentController.getAppointment);
 router.get("/appointment/:key", appointmentController.getAppointmentByKey);

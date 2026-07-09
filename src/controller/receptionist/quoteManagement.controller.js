@@ -1,4 +1,4 @@
-const quoteManagementService = require("../../service/technician/quoteManagement.service");
+const quoteManagementService = require("../../service/receptionist/quoteManagement.service");
 const {
   createQuotationSchema,
   updateQuotationSchema,
