@@ -5,6 +5,13 @@ const Issues = db.Vehicle_Issues;
 const Components = db.Vehicle_Components;
 const Tasks = db.Task;
 const Task_Assignments = db.Task_Assignment;
+const Service_Order = db.Service_Orders;
+const Appointment = db.Appointments;
+const Customers = db.Customers;
+const Users = db.User;
+const Vehicles = db.Vehicles;
+const Vehicle_Models = db.Vehicle_Models;
+
 
 module.exports.getTaskAssignment = async (technicianId) => {
   const serviceOrders = await db.Service_Orders.findAll({
@@ -350,13 +357,18 @@ module.exports.completeTask = async (taskAssignmentId, technicianId) => {
 };
 
 module.exports.getAllComponents = async () => {
-    const components = await Components.findAll({
-        attributes: ["id","name","parent_id"]
-    });
-    return components;
-}
+  const components = await Components.findAll({
+    attributes: ["id", "name", "parent_id"],
+  });
+  return components;
+};
 
-module.exports.createIssueReports = async (task_id, issues,note,technicianId ) => {
+module.exports.createIssueReports = async (
+  task_id,
+  issues,
+  note,
+  technicianId,
+) => {
   const task = await Tasks.findOne({
     where: {
       id: task_id,
@@ -386,41 +398,75 @@ module.exports.createIssueReports = async (task_id, issues,note,technicianId ) =
 };
 
 module.exports.getIssuesReportHistory = async (technicianId) => {
-  const issues = await Issues.findAll({
-    attributes: ["id", "component_id", "task_id", "error_description", "note"],
-    include: [
-      {
-        model: Tasks,
-        as: "task",
-        attributes: ["id", "status"],
+    const issues = await Issues.findAll({
+        attributes: ["id", "error_description", "note", "createdAt"],
         include: [
-          {
-            model: Task_Assignments,
-            as: "task_assignments",
-            attributes: [],
-            where: { technician_id: technicianId },
-          },
+            {
+                model: Tasks,
+                as: "task",
+                attributes: ["id", "status"],
+                required: true,
+                include: [
+                    {
+                        model: Task_Assignments,
+                        as: "assignments",              
+                        attributes: [],
+                        where: { technician_id: technicianId },
+                        required: true,
+                    },
+                    {
+                        model: Service_Order,
+                        as: "serviceOrder",           
+                        attributes: ["id"],
+                        include: [
+                            {
+                                model: Vehicles,
+                                as: "vehicle",
+                                attributes: ["id","color" ,"license_plate"],                         
+                                include: [
+                                    {
+                                        model: Vehicle_Models,
+                                        as: "model",
+                                        attributes: ["id", "model_name"]
+                                    },
+                                    {
+                                        model: Customers,
+                                        as: "customer",
+                                        attributes: ["id", "name", "phone"],
+                                        include: [
+                                            {
+                                                model: Users,
+                                                as: "user",
+                                                attributes: ["id", "fullName", "phoneNumber"],
+                                            },
+                                        ],
+                                    },
+                                ],
+                            },
+                        ],
+                    },
+                ],
+            },
+            {
+                model: Components,
+                as: "component",
+                attributes: ["id", "name", "parent_id"],
+                include: [
+                    {
+                        model: Components,
+                        as: "parent",
+                        attributes: ["id", "name"],
+                    },
+                    {
+                        model: Components,
+                        as: "children",
+                        attributes: ["id", "name"],
+                    },
+                ],
+            },
         ],
-      },
-      {
-        model: Vehicle_Components,
-        as: "component",
-        attributes: ["id", "name", "parent_id"],
-        include: [
-          {
-            model: Vehicle_Components,
-            as: "parent",
-            attributes: ["id", "name"],
-          },
-          {
-            model: Vehicle_Components,
-            as: "children",
-            attributes: ["id", "name"],
-          },
-        ],
-      },
-    ],
-    order: [["createdAt", "DESC"]],
-  });
-  return issues;
+        order: [["createdAt", "DESC"]],
+    });
+
+    return issues;
 };

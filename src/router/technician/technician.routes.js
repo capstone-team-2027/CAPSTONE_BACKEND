@@ -6,6 +6,7 @@ const notificationController = require("./../../controller/technician/notificati
 const techShiftController = require("./../../controller/technician/shift.controller")
 
 
+router.get("/issues", taskAssignment.getIssuesReportHistory);
 router.post("/issues", taskAssignment.createIssuesReport);
 router.get("/component", taskAssignment.getAllComponents);
 router.get("/task-assignments", taskAssignment.getTaskAssignment);

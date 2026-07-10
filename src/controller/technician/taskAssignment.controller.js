@@ -132,8 +132,9 @@ module.exports.createIssuesReport = async (req, res) => {
 
 module.exports.getIssuesReportHistory = async (req, res) => {
   try {
-    const result = await taskAssignmentService.getIssuesReportHistory();
-        return res.status(200).json({success: true,data: result});
+    const technicianId = res.locals.user.id;
+    const result = await taskAssignmentService.getIssuesReportHistory(technicianId);
+    return res.status(200).json({success: true,data: result});
   } catch (error) {
     return res.status(error.status || 500).json({
       success: false,
