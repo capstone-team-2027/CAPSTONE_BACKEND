@@ -2,6 +2,10 @@ const { z } = require("zod");
 
 const quotationDetailSchema = z
   .object({
+    issue_id: z
+      .number({ error: "Lỗi phải là số" })
+      .int("Lỗi không hợp lệ")
+      .positive("Lỗi không hợp lệ"), 
     spare_part_id: z
       .number({ error: "Phụ tùng phải là số" })
       .int("Phụ tùng không hợp lệ")

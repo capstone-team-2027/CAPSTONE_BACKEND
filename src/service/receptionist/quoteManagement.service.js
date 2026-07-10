@@ -4,29 +4,99 @@ const Quotation = db.Quotations;
 const QuotationDetail = db.Quotation_Details;
 const SparePart = db.Spare_Parts;
 const Task = db.Task;
+const Issues = db.Vehicle_Issues;
+const Components = db.Vehicle_Components;
+const Tasks = db.Task;
+const Task_Assignments = db.Task_Assignment;
+const Service_Order = db.Service_Orders;
+const Appointment = db.Appointments;
+const Customers = db.Customers;
+const Users = db.User;
+const Vehicles = db.Vehicles;
+const Vehicle_Models = db.Vehicle_Models;
+
+
 const transporter = require("../../config/mailer.config");
 const {
   quotationEmailTemplate,
 } = require("../../templates/quotation.template");
 const { generateQuotationActionToken } = require("../../util/jwt.util");
 
-module.exports.sendQuotationEmail = async (email, quotation) => {
-  const token = generateQuotationActionToken(quotation.id);
-  const approveLink = `${process.env.BACKEND_URL}/api/guest/quotation/${quotation.id}/approve-link?token=${token}&email=${encodeURIComponent(email)}`;
-  const rejectLink = `${process.env.BACKEND_URL}/api/guest/quotation/${quotation.id}/reject-link?token=${token}&email=${encodeURIComponent(email)}`;
-  await transporter.sendMail({
-    from: process.env.EMAIL_USER,
-    to: email,
-    subject: "Báo giá sửa chữa xe của bạn",
-    html: quotationEmailTemplate(quotation, {}, approveLink, rejectLink),
-  });
+module.exports.getIssuesReports = async () => {
+    const issues = await Issues.findAll({
+        attributes: ["id", "error_description", "note", "createdAt"],
+        include: [
+            {
+                model: Tasks,
+                as: "task",
+                attributes: ["id"],
+                where: { status: "COMPLETED" }, 
+                required: true,
+                include: [
+                    {
+                        model: Service_Order,
+                        as: "serviceOrder",           
+                        attributes: ["id"],
+                        include: [
+                            {
+                                model: Vehicles,
+                                as: "vehicle",
+                                attributes: ["id","color" ,"license_plate"],                         
+                                include: [
+                                    {
+                                        model: Vehicle_Models,
+                                        as: "model",
+                                        attributes: ["id", "model_name"]
+                                    },
+                                    {
+                                        model: Customers,
+                                        as: "customer",
+                                        attributes: ["id", "name", "phone"],
+                                        include: [
+                                            {
+                                                model: Users,
+                                                as: "user",
+                                                attributes: ["id", "fullName", "phoneNumber"],
+                                            },
+                                        ],
+                                    },
+                                ],
+                            },
+                        ],
+                    },
+                ],
+            },
+            {
+                model: Components,
+                as: "component",
+                attributes: ["id", "name", "parent_id"],
+                include: [
+                    {
+                        model: Components,
+                        as: "parent",
+                        attributes: ["id", "name"],
+                    },
+                    {
+                        model: Components,
+                        as: "children",
+                        attributes: ["id", "name"],
+                    },
+                ],
+            },
+        ],
+        order: [["createdAt", "DESC"]],
+    });
+
+    return issues;
 };
+
 module.exports.getSpareParts = async () => {
   const parts = await SparePart.findAll({
     attributes: ["id", "sku", "name", "brand", "retail_price"],
   });
   return parts;
 };
+
 module.exports.createQuotation = async (data, email) => {
   const quotation = await db.sequelize.transaction(async (t) => {
     let totalAmount = 0;
@@ -51,6 +121,7 @@ module.exports.createQuotation = async (data, email) => {
       const amount = item.quantity * (unitPrice || repairPrice);
       totalAmount += amount;
       detailsData.push({
+        issue_id: item.issue_id,
         spare_part_id: item.spare_part_id || null,
         quantity: item.quantity,
         unit_price: unitPrice || 0,
@@ -72,33 +143,9 @@ module.exports.createQuotation = async (data, email) => {
       quotation_id: quotation.id,
     }));
     await QuotationDetail.bulkCreate(details, { transaction: t });
-    if (data.task_id) {
-      await Task.update(
-        { status: "COMPLETED" },
-        { where: { id: data.task_id }, transaction: t },
-      );
-      await db.Task_Assignment.update(
-        { status: "COMPLETED" },
-        { where: { task_id: data.task_id }, transaction: t },
-      );
-    }
     return quotation;
   });
-  if (email) {
-    const fullQuotation = await Quotation.findByPk(quotation.id, {
-      include: [
-        {
-          model: QuotationDetail,
-          as: "items",
-          include: [
-            { model: SparePart, as: "sparePart", attributes: ["id", "name"] },
-          ],
-        },
-      ],
-    });
-    await module.exports.sendQuotationEmail(email, fullQuotation);
-  }
-  return quotation;
+   return quotation; 
 };
 
 module.exports.updateQuotation = async (id, data) => {

@@ -6,6 +6,7 @@ const notificationController = require("../../controller/receptionist/notificati
 const searchController = require("../../controller/receptionist/search.controller");
 const quoteManagementController = require("./../../controller/receptionist/quoteManagement.controller");
 
+router.get("/issues", quoteManagementController.getIssueReports);
 router.post("/quote", quoteManagementController.createQuotation);
 router.patch("/quote/:id", quoteManagementController.updateQuotation);
 router.get("/quote", quoteManagementController.getQuoteHistory);
