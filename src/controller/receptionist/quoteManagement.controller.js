@@ -1,8 +1,20 @@
-const quoteManagementService = require("../../service/technician/quoteManagement.service");
+const { success } = require("zod");
+const quoteManagementService = require("../../service/receptionist/quoteManagement.service");
 const {
   createQuotationSchema,
   updateQuotationSchema,
-} = require("../../validation/technician/quoteManagement.validation");
+} = require("../../validation/receptionist/quoteManagement.validation");
+
+module.exports.getIssueReports = async (req, res) => {
+  try {
+    const result = await quoteManagementService.getIssuesReports();
+    return res.status(200).json({ success: true, data: result });
+  } catch (error) {
+    return res
+      .status(error.status || 500)
+      .json({ message: error.message || "Internal server error" });
+  }
+};
 
 module.exports.getSpareParts = async (req, res) => {
   try {
@@ -31,7 +43,8 @@ module.exports.createQuotation = async (req, res) => {
       });
     }
     const result = await quoteManagementService.createQuotation(
-      validation.data, email
+      validation.data,
+      email,
     );
     return res.status(201).json({
       message: "Tạo báo giá thành công",

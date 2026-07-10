@@ -36,11 +36,11 @@ module.exports = [
   },
   {
     prefix: "/api/inventory",
-    middlewares: [
+      middlewares: [
       checkClient.authenticate,
       checkClient.authorizeRoles(ROLES.INVENTORY_MANAGER),
     ],
-    router: inventoryRoutes,
+    router: inventoryRoutes
   },
   {
     prefix: "/api/receptionist",

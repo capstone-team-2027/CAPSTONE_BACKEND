@@ -1,6 +1,17 @@
+const { Op } = require("sequelize");
 const db = require("../../../models");
 const Service_Combo = db.Service_Combo;
 const Service_Catalog = db.Service_Catalog;
+
+const normalizeBoolean = (value) => {
+  if (typeof value === "boolean") return value;
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === "true") return true;
+    if (normalized === "false") return false;
+  }
+  return undefined;
+};
 
 const buildComboInclude = () => [
   {
@@ -24,6 +35,27 @@ const buildComboInclude = () => [
     ],
   },
 ];
+
+const buildComboWhere = ({ q, is_active } = {}) => {
+  const where = {};
+
+  const normalizedIsActive = normalizeBoolean(is_active);
+  if (normalizedIsActive !== undefined) {
+    where.is_active = normalizedIsActive;
+  }
+
+  if (q) {
+    const keyword = q.toString().trim();
+    if (keyword) {
+      where[Op.or] = [
+        { combo_name: { [Op.iLike]: `%${keyword}%` } },
+        { description: { [Op.iLike]: `%${keyword}%` } },
+      ];
+    }
+  }
+
+  return where;
+};
 
 module.exports.createServiceCombo = async (
   combo_name,
@@ -77,13 +109,47 @@ module.exports.createServiceCombo = async (
   return createdCombo;
 };
 
-module.exports.listServiceCombos = async () => {
-  const combos = await Service_Combo.findAll({
+module.exports.listServiceCombos = async (options = {}) => {
+  const { page, limit, q, all, is_active } = options;
+
+  const where = buildComboWhere({ q, is_active });
+
+  const queryOptions = {
+    where,
     attributes: ["id", "combo_name", "description", "is_active", "createdAt", "updatedAt"],
     include: buildComboInclude(),
     order: [["createdAt", "DESC"]],
+    distinct: true,
+  };
+
+  if (all || !page) {
+    const combos = await Service_Combo.findAll(queryOptions);
+    return combos;
+  }
+
+  const pageNum = Number(page) || 1;
+  const limitNum = Number(limit) || 20;
+  const offsetNum = (pageNum - 1) * limitNum;
+
+  queryOptions.limit = limitNum;
+  queryOptions.offset = offsetNum;
+
+  const { count, rows } = await Service_Combo.findAndCountAll(queryOptions);
+
+  const activeCount = await Service_Combo.count({
+    where: {
+      ...where,
+      is_active: true
+    }
   });
-  return combos;
+
+  return {
+    page: pageNum,
+    limit: limitNum,
+    total: count,
+    totalActive: activeCount,
+    items: rows,
+  };
 };
 
 module.exports.updateServiceCombo = async (

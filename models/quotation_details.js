@@ -14,6 +14,12 @@ module.exports = (sequelize, DataTypes) => {
           as: "sparePart",
         });
       }
+      if (models.Vehicle_Issues) {
+        this.belongsTo(models.Vehicle_Issues, {
+          foreignKey: "issue_id",
+          as: "issue",
+        });
+      }
     }
   }
   Quotation_Details.init(
@@ -21,6 +27,11 @@ module.exports = (sequelize, DataTypes) => {
       quotation_id: {
         type: DataTypes.INTEGER,
         allowNull: false,
+      },
+
+      issue_id: {
+        type: DataTypes.INTEGER,
+        allowNull: true, // null nếu dòng báo giá không gắn với lỗi cụ thể (VD: phí công chung, phụ phí)
       },
 
       spare_part_id: {

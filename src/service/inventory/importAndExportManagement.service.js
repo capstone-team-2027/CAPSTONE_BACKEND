@@ -3,12 +3,13 @@ const { Op } = require("sequelize");
 const InventoryLog = db.Inventory_Logs;
 const InventoryBatch = db.Inventory_Batches;
 const SparePart = db.Spare_Parts;
+const PartCategory = db.Part_Categories;
 const Supplier = db.Suppliers;
 const User = db.User;
 const Quotation = db.Quotations;
 const QuotationDetail = db.Quotation_Details;
-
 const sparePartService = require("../../service/inventory/sparePartManagement.service");
+const geminiClient = require("../../config/gemini.config");
 
 const normalizeName = (str) =>
   (str || "")
@@ -34,6 +35,116 @@ function similarity(a, b) {
           : Math.min(m[i - 1][j - 1], m[i][j - 1], m[i - 1][j]) + 1;
   return 1 - m[b.length][a.length] / Math.max(a.length, b.length);
 }
+
+const buildPrompt = (categoryList, supplierList) => `Đây là hóa đơn nhập kho phụ tùng ô tô.
+    Danh sách category hiện có:
+    ${categoryList}
+    Danh sách nhà cung cấp hiện có:
+    ${supplierList}
+    So sánh tên nhà cung cấp trên hóa đơn với danh sách trên:
+    - Khớp chính xác (chỉ khác hoa thường): supplier_match = "exact", supplier_id = id tương ứng, supplier_suggestion = null
+    - Tên gần giống nhưng không chắc: supplier_match = "similar", supplier_id = null, supplier_suggestion = { "id": id, "name": tên }
+    - Không tìm thấy: supplier_match = "none", supplier_id = null, supplier_suggestion = null
+    Lưu ý: category_id chỉ chọn khi chắc chắn phù hợp, không chắc thì để null.
+    Trả về JSON theo đúng format sau, không giải thích gì thêm:
+    {
+      "supplier_name": "tên trên hóa đơn",
+      "supplier_id": null,
+      "supplier_match": "exact | similar | none",
+      "supplier_suggestion": { "id": 1, "name": "tên gần giống" } hoặc null,
+      "items": [
+        {
+          "name": "tên phụ tùng",
+          "brand": "thương hiệu nếu có, hoặc null",
+          "quantity": số_lượng,
+          "unit_price": đơn_giá_số,
+          "category_id": null
+        }
+      ]
+    }`;
+const enrichItems = async (items) => {
+  const allParts = await SparePart.findAll({
+    attributes: ["id", "sku", "name", "brand", "retail_price", "warranty_period_months", "warranty_km_limit"],
+  });
+  return Promise.all(
+    items.map(async (item) => {
+      let part = null;
+      const normItem = normalizeName(item.name);
+      console.log("AI name:", item.name, "| normalized:", normItem);
+      console.log("DB parts:", allParts.map(p => normalizeName(p.name)));
+      const sameBrand = (b1, b2) =>
+        (b1 || "").trim().toLowerCase() === (b2 || "").trim().toLowerCase();
+      const exactPart = allParts.find(
+        (p) => normalizeName(p.name) === normItem && sameBrand(p.brand, item.brand)
+      );
+      if (exactPart) {
+        part = exactPart;
+      } else {
+        const matched = allParts
+          .map((p) => ({ p, score: similarity(normItem, normalizeName(p.name)) }))
+          .filter((x) => x.score >= 0.9 && sameBrand(x.p.brand, item.brand))
+          .sort((a, b) => b.score - a.score)[0];
+        if (matched) part = matched.p;
+      }
+      if (part) {
+        const lastLog = await InventoryLog.findOne({
+          where: { part_id: part.id, type: "IN" },
+          order: [["createdAt", "DESC"]],
+          attributes: ["unit_price"],
+        });
+        return {
+          ...item,
+          part_id: part.id,
+          sku: part.sku,
+          retail_price: part.retail_price,
+          warranty_period_months: part.warranty_period_months,
+          warranty_km_limit: part.warranty_km_limit,
+          last_unit_price: lastLog ? lastLog.unit_price : null,
+          is_existing: true,
+        };
+      }
+      return { ...item, part_id: null, is_existing: false };
+    })
+  );
+};
+
+module.exports.scanInvoice = async (files) => {
+  const [categories, suppliers] = await Promise.all([
+    PartCategory.findAll({ attributes: ["id", "category_name"] }),
+    Supplier.findAll({ attributes: ["id", "name"] }),
+  ]);
+  const categoryList = categories.map((c) => `- ${c.category_name} (id: ${c.id})`).join("\n");
+  const supplierList = suppliers.map((s) => `- ${s.name} (id: ${s.id})`).join("\n");
+  const model = geminiClient.getGenerativeModel({ model: "gemini-2.5-flash" });
+  const prompt = buildPrompt(categoryList, supplierList);
+  const scanResults = await Promise.all(
+    files.map(async (file) => {
+      const result = await model.generateContent([
+        { inlineData: { mimeType: file.mimeType, data: file.imageBase64 } },
+        prompt,
+      ]);
+      const text = result.response.text().trim();
+      return JSON.parse(text.replace(/```json|```/g, "").trim());
+    })
+  );
+  // Merge items từ tất cả ảnh, gộp số lượng nếu trùng tên + brand
+  const mergedItems = [];
+  for (const invoice of scanResults) {
+    for (const item of invoice.items) {
+      const existing = mergedItems.find(
+        (i) => i.name === item.name && i.brand === item.brand
+      );
+      if (existing) {
+        existing.quantity += item.quantity;
+      } else {
+        mergedItems.push({ ...item });
+      }
+    }
+  }
+
+  const enrichedItems = await enrichItems(mergedItems);
+  return { invoices: scanResults, merged: { items: enrichedItems } };
+};
 
 module.exports.importSparePart = async (manager_id, supplier_id, items) => {
   return await db.sequelize.transaction(async (t) => {
@@ -155,7 +266,7 @@ module.exports.importSparePart = async (manager_id, supplier_id, items) => {
         await part.update(
           {
             stock_quantity: quantity,
-            retail_price: retail_price ?? 0,
+            retail_price: retail_price,
           },
           {
             transaction: t,
@@ -331,7 +442,7 @@ module.exports.approveExportByQuotation = async (quotationId, managerId) => {
       });
     }
     await InventoryLog.bulkCreate(logsData, { transaction: t });
-        await quotation.update({ status: "EXPORTED" }, { transaction: t });
+    await quotation.update({ status: "EXPORTED" }, { transaction: t });
     return { receipt_code, quotation_id: quotationId };
   });
 };
