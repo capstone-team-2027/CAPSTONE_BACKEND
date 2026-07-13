@@ -11,6 +11,7 @@ router.post("/quote", quoteManagementController.createQuotation);
 router.patch("/quote/:id", quoteManagementController.updateQuotation);
 router.get("/quote", quoteManagementController.getQuoteHistory);
 router.get("/spare-parts", quoteManagementController.getSpareParts);
+router.get("/services", quoteManagementController.getAllService);
 
 router.get("/appointments", appointmentController.getAppointment);
 router.get("/appointment/:key", appointmentController.getAppointmentByKey);
