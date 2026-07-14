@@ -8,6 +8,9 @@ const quoteApprovalController = require("../../controller/customer/quoteApproval
 
 router.get("/service-categories", guestController.getServiceCategories);
 router.get("/service-catalogs", guestController.getServiceCatalog);
+// Keep any literal routes like /service-catalogs/search above this param route.
+router.get("/service-catalogs/search", guestController.searchServiceCatalog);
+router.get("/service-catalogs/:id", guestController.getServiceCatalogDetail);
 router.get("/service-combos", guestController.getServiceCombos);
 
 router.post("/vehicle_make", vehicleMakeController.getVehicleMake);
