@@ -12,6 +12,10 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: "created_by",
         as: "creator",
       });
+      this.belongsTo(models.User, {
+        foreignKey: "updated_by",
+        as: "updater",
+      });
       if (models.Quotation_Details) {
         this.hasMany(models.Quotation_Details, {
           foreignKey: "quotation_id",
@@ -29,6 +33,10 @@ module.exports = (sequelize, DataTypes) => {
       created_by: {
         type: DataTypes.INTEGER,
         allowNull: false,
+      },
+       updated_by: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
       },
       total_amount: {
         type: DataTypes.DECIMAL(12, 2),

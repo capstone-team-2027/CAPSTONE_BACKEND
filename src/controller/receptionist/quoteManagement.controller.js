@@ -71,6 +71,7 @@ module.exports.createQuotation = async (req, res) => {
 
 module.exports.updateQuotation = async (req, res) => {
   try {
+    const receptionistId = res.locals.user.id;
     const { id } = req.params;
     const { items, note } = req.body;
     const validation = updateQuotationSchema.safeParse({
@@ -85,6 +86,7 @@ module.exports.updateQuotation = async (req, res) => {
     const result = await quoteManagementService.updateQuotation(
       id,
       validation.data,
+      receptionistId,
     );
     return res.status(200).json({
       message: "Cập nhật báo giá thành công",
@@ -96,6 +98,7 @@ module.exports.updateQuotation = async (req, res) => {
     });
   }
 };
+
 
 module.exports.getQuoteHistory = async (req, res) => {
   try {
