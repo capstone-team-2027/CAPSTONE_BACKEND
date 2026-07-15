@@ -77,6 +77,10 @@ describe("ServiceCombos Controller", () => {
     it("should forward query params (q, is_active) to service", async () => {
       const fakeData = [{ id: 1, combo_name: "Combo X" }];
       mockListServiceCombos.mockResolvedValue(fakeData);
+      mockViewServiceComboSchema.safeParse.mockReturnValueOnce({
+        success: true,
+        data: { q: "search-term", is_active: "true" }
+      });
 
       const req = { query: { q: "search-term", is_active: "true" } };
       const res = createMockResponse();

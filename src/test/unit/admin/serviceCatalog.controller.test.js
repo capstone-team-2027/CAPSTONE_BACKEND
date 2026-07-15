@@ -4,6 +4,14 @@ jest.mock("../../../service/admin/serviceCatalog.service", () => ({
   getServiceCatalog: mockGetServiceCatalog,
 }));
 
+const mockCreateServiceCatalogSchema = { safeParse: jest.fn() };
+const mockViewServiceCatalogSchema = { safeParse: jest.fn() };
+
+jest.mock("../../../validation/admin/serviceCatalog.validation", () => ({
+  createServiceCatalogSchema: mockCreateServiceCatalogSchema,
+  viewServiceCatalogSchema: mockViewServiceCatalogSchema,
+}));
+
 const controller = require("../../../controller/admin/serviceCatalog.controller");
 
 const createMockResponse = () => {
@@ -22,6 +30,10 @@ describe("ServiceCatalog Controller", () => {
     it("should forward q, category_id, is_active to service and return data", async () => {
       const fakeData = [{ id: 1, service_name: "Service A" }];
       mockGetServiceCatalog.mockResolvedValue(fakeData);
+      mockViewServiceCatalogSchema.safeParse.mockReturnValue({
+        success: true,
+        data: { q: "bao dưỡng", category_id: "2", is_active: "true" }
+      });
 
       const req = { query: { q: "bao dưỡng", category_id: "2", is_active: "true" } };
       const res = createMockResponse();
@@ -41,6 +53,10 @@ describe("ServiceCatalog Controller", () => {
       const error = new Error("DB error");
       error.status = 500;
       mockGetServiceCatalog.mockRejectedValue(error);
+      mockViewServiceCatalogSchema.safeParse.mockReturnValue({
+        success: true,
+        data: {}
+      });
 
       const req = { query: {} };
       const res = createMockResponse();

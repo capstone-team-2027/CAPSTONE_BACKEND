@@ -96,8 +96,8 @@ describe("AuthController Unit Tests", () => {
         it("should successfully register and return data", async () => {
             const mockResult = { id: 1, fullName: "Test User" };
             req.body = {
+                idToken: "firebase-token",
                 fullName: "Test User",
-                phone: "0987654321",
                 password: "password123",
                 confirmPassword: "password123",
             };
@@ -109,16 +109,15 @@ describe("AuthController Unit Tests", () => {
 
             expect(authValidation.registerSchema.safeParse).toHaveBeenCalledWith({
                 fullName: req.body.fullName,
-                phone: req.body.phone,
                 password: req.body.password,
             });
             expect(authService.register).toHaveBeenCalledWith(
+                req.body.idToken,
                 req.body.fullName,
-                req.body.phone,
                 req.body.password,
                 req.body.confirmPassword
             );
-            expect(res.status).toHaveBeenCalledWith(201);
+            expect(res.status).toHaveBeenCalledWith(200);
             expect(res.json).toHaveBeenCalledWith({
                 message: "Đăng kí thành công",
                 data: mockResult,
