@@ -14,6 +14,12 @@ module.exports = (sequelize, DataTypes) => {
           as: "sparePart",
         });
       }
+      if (models.Service_Catalog) {
+        this.belongsTo(models.Service_Catalog, {
+          foreignKey: "service_id",
+          as: "service_catalog",
+        });
+      }
       if (models.Vehicle_Issues) {
         this.belongsTo(models.Vehicle_Issues, {
           foreignKey: "issue_id",
@@ -33,7 +39,10 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.INTEGER,
         allowNull: true, // null nếu dòng báo giá không gắn với lỗi cụ thể (VD: phí công chung, phụ phí)
       },
-
+      service_id: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+      },
       spare_part_id: {
         type: DataTypes.INTEGER,
         allowNull: true,
