@@ -5,18 +5,21 @@ const quotationDetailSchema = z
     issue_id: z
       .number({ error: "Lỗi phải là số" })
       .int("Lỗi không hợp lệ")
-      .positive("Lỗi không hợp lệ"), 
+      .positive("Lỗi không hợp lệ"),
     spare_part_id: z
       .number({ error: "Phụ tùng phải là số" })
       .int("Phụ tùng không hợp lệ")
       .positive("Phụ tùng không hợp lệ")
       .optional(),
-
+    service_id: z
+      .number({ error: "Dịch vụ phải là số" })
+      .int("Phụ tùng không hợp lệ")
+      .positive("Phụ tùng không hợp lệ")
+      .optional(),
     repair_price: z
       .number({ error: "Giá sửa chữa phải là số" })
       .min(0, "Giá sửa chữa không được âm")
       .optional(),
-
     quantity: z
       .number({
         error: (issue) =>
@@ -26,11 +29,19 @@ const quotationDetailSchema = z
       .min(1, "Số lượng phải lớn hơn 0"),
   })
   .superRefine((data, ctx) => {
-    if (!data.spare_part_id && (data.repair_price == null || data.repair_price === 0)) {
+    if (!data.spare_part_id && !data.service_id) {
       ctx.addIssue({
         code: "custom",
-        path: ["repair_price"],
-        message: "Phải có phụ tùng hoặc giá sửa chữa",
+        path: ["service_id"],
+        message: "Mỗi dòng phải có phụ tùng hoặc dịch vụ",
+      });
+    }
+    if (data.spare_part_id && data.service_id) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["service_id"],
+        message:
+          "Một dòng chỉ được là phụ tùng hoặc dịch vụ, không được cả hai",
       });
     }
   });

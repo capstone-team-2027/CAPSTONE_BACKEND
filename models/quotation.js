@@ -8,7 +8,14 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: "task_id",
         as: "task",
       });
-
+      this.belongsTo(models.User, {
+        foreignKey: "created_by",
+        as: "creator",
+      });
+      this.belongsTo(models.User, {
+        foreignKey: "updated_by",
+        as: "updater",
+      });
       if (models.Quotation_Details) {
         this.hasMany(models.Quotation_Details, {
           foreignKey: "quotation_id",
@@ -20,6 +27,14 @@ module.exports = (sequelize, DataTypes) => {
   Quotations.init(
     {
       task_id: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+      },
+      created_by: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+      },
+       updated_by: {
         type: DataTypes.INTEGER,
         allowNull: true,
       },
