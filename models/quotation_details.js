@@ -65,6 +65,14 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.DECIMAL(12, 2),
         allowNull: false,
       },
+      status: {
+        type: DataTypes.STRING(50),
+        allowNull: false,
+        defaultValue: "PENDING",
+        validate: {
+          isIn: [["PENDING", "EXPORTED"]],
+        },
+      },
     },
     {
       sequelize,

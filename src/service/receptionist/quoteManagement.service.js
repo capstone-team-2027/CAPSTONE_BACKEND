@@ -110,10 +110,24 @@ module.exports.getSpareParts = async () => {
       "brand",
       "retail_price",
       "stock_quantity",
+      [
+        db.sequelize.literal(`(
+          "Spare_Parts"."stock_quantity" - COALESCE((
+            SELECT SUM(qd.quantity)
+            FROM "Quotation_Details" qd
+            JOIN "Quotations" q ON q.id = qd.quotation_id
+            WHERE qd.spare_part_id = "Spare_Parts"."id"
+              AND q.status = 'APPROVED'
+              AND qd.status = 'PENDING'
+          ), 0)
+        )`),
+        "available_quantity",
+      ],
     ],
   });
   return parts;
 };
+
 
 module.exports.getAllService = async () => {
   const service = await Service_Catalog.findAll({
@@ -130,6 +144,25 @@ module.exports.createQuotation = async (data, receptionistId) => {
       throw {
         status: 404,
         message: `Công việc #${data.task_id} không tồn tại`,
+      };
+    }
+    const issueIds = [...new Set(data.items.map((item) => item.issue_id))];
+    const issues = await Issues.findAll({
+      where: { id: issueIds },
+      attributes: ["id", "task_id"],
+      transaction: t,
+    });
+
+    if (issues.length !== issueIds.length) {
+      const foundIds = issues.map((issue) => issue.id);
+      const missingId = issueIds.find((id) => !foundIds.includes(id));
+      throw { status: 404, message: `Lỗi #${missingId} không tồn tại` };
+    }
+    const foreignIssue = issues.find((issue) => issue.task_id !== task.id);
+    if (foreignIssue) {
+      throw {
+        status: 400,
+        message: `Lỗi #${foreignIssue.id} không thuộc công việc #${task.id}`,
       };
     }
     const detailsData = [];
