@@ -88,6 +88,9 @@ module.exports.approveExportByQuotation = async (req, res) => {
   try {
     const manager_id = res.locals.user.id;
     const { quotationId } = req.params;
+    const { detailIds } = req.body;
+        console.log("params:", req.params, "body:", req.body);
+
     const validation = approveExportSchema.safeParse({
       quotationId: Number(quotationId),
     });
@@ -98,6 +101,7 @@ module.exports.approveExportByQuotation = async (req, res) => {
     }
     const result = await ImportAndExportManagement.approveExportByQuotation(
       Number(quotationId),
+      detailIds,
       manager_id,
     );
     return res.status(200).json({
