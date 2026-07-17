@@ -127,8 +127,11 @@ module.exports.createQuotation = async (data, receptionistId) => {
     let totalAmount = 0;
     const task = await Task.findByPk(data.task_id, { transaction: t });
     if (!task) {
-      throw { status: 404, message: `Công việc #${data.task_id} không tồn tại` };
-    };
+      throw {
+        status: 404,
+        message: `Công việc #${data.task_id} không tồn tại`,
+      };
+    }
     const detailsData = [];
     for (const item of data.items) {
       let unitPrice = 0;
@@ -161,7 +164,7 @@ module.exports.createQuotation = async (data, receptionistId) => {
       detailsData.push({
         issue_id: item.issue_id,
         spare_part_id: item.spare_part_id || null,
-        service_id: item.service_id || null, 
+        service_id: item.service_id || null,
         quantity: item.quantity,
         unit_price: unitPrice || 0,
         repair_price: repairPrice || 0,
@@ -197,25 +200,39 @@ module.exports.updateQuotation = async (id, data, receptionistId) => {
     if (!["PENDING", "REJECTED"].includes(quotation.status)) {
       throw {
         status: 400,
-        message: "Chỉ có thể cập nhật báo giá đang ở trạng thái PENDING hoặc REJECTED",
+        message:
+          "Chỉ có thể cập nhật báo giá đang ở trạng thái PENDING hoặc REJECTED",
       };
     }
-    await QuotationDetail.destroy({ where: { quotation_id: id }, transaction: t });
+    await QuotationDetail.destroy({
+      where: { quotation_id: id },
+      transaction: t,
+    });
     let totalAmount = 0;
     const detailsData = [];
     for (const item of data.items) {
       let unitPrice = 0;
       let repairPrice = 0;
       if (item.spare_part_id) {
-        const part = await SparePart.findByPk(item.spare_part_id, { transaction: t });
+        const part = await SparePart.findByPk(item.spare_part_id, {
+          transaction: t,
+        });
         if (!part) {
-          throw { status: 404, message: `Phụ tùng #${item.spare_part_id} không tồn tại` };
+          throw {
+            status: 404,
+            message: `Phụ tùng #${item.spare_part_id} không tồn tại`,
+          };
         }
         unitPrice = part.retail_price;
       } else {
-        const service = await Service_Catalog.findByPk(item.service_id, { transaction: t });
+        const service = await Service_Catalog.findByPk(item.service_id, {
+          transaction: t,
+        });
         if (!service) {
-          throw { status: 404, message: `Dịch vụ #${item.service_id} không tồn tại` };
+          throw {
+            status: 404,
+            message: `Dịch vụ #${item.service_id} không tồn tại`,
+          };
         }
         repairPrice = item.repair_price ?? service.labor_price;
       }
@@ -358,3 +375,50 @@ module.exports.getQuoteHistory = async () => {
   });
   return result;
 };
+
+module.exports.approveQuotation = async (id) => {
+  return await db.sequelize.transaction(async (t) => {
+    const quotation = await Quotation.findByPk(id, {
+      include: [
+        {
+          model: QuotationDetail,
+          as: "items",
+          attributes: ["id", "service_id", "issue_id"],
+        },
+      ],
+      transaction: t,
+    });
+    if (!quotation) {
+      throw { status: 404, message: "Báo giá không tồn tại" };
+    }
+    if (quotation.status !== "PENDING") {
+      throw { status: 400, message: "Báo giá đã được xử lý, không thể thay đổi" };
+    }
+
+    const inspectionTask = await Task.findByPk(quotation.task_id, {
+      transaction: t,
+    });
+    if (!inspectionTask) {
+      throw { status: 404, message: "Không tìm thấy công việc kiểm tra của báo giá" };
+    }
+
+    const serviceItems = quotation.items.filter((item) => item.service_id);
+    if (serviceItems.length > 0) {
+      await Task.bulkCreate(
+        serviceItems.map((item) => ({
+          service_order_id: inspectionTask.service_order_id,
+          quotation_item_id: item.id,
+          service_catalog_id: item.service_id,
+          status: "PENDING",
+        })),
+        { transaction: t },
+      );
+    }
+    await quotation.update(
+      { status: "APPROVED", approved_at: new Date() },
+      { transaction: t },
+    );
+    return quotation;
+  });
+};
+
