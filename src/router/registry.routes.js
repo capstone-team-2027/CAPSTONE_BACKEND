@@ -7,6 +7,7 @@ const inventoryRoutes = require("../router/inventory/inventory.routes.js");
 const checkClient = require("../middleware/auth.middleware.js");
 const receptionistRoutes = require("./../router/receptionist/receptionist.routes.js");
 const technicianRoutes = require("./../router/technician/technician.routes.js");
+const technicianLeaderRoutes = require("./../router/technicianLeader/technicianLeader.routes.js");
 
 module.exports = [
   {
@@ -57,5 +58,13 @@ module.exports = [
       checkClient.authorizeRoles(ROLES.TECHNICIAN),
     ],
     router: technicianRoutes,
+  },
+  {
+    prefix: "/api/head-technician",
+    middlewares: [
+      checkClient.authenticate,
+      checkClient.authorizeRoles(ROLES.TECHNICIAN_LEADER),
+    ],
+    router: technicianLeaderRoutes,
   },
 ];
