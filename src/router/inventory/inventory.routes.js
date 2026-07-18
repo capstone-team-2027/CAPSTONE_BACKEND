@@ -12,6 +12,7 @@ router.post("/import/scan-invoice", upload.array("invoices"), importAndExportMan
 router.get("/approved-quote", importAndExportManagementController.getApprovedQuotesWithParts);
 router.post("/export/:quotationId/approve", importAndExportManagementController.approveExportByQuotation);
 router.get("/export", importAndExportManagementController.viewExportHistory);
+router.get("/export/:receiptCode", importAndExportManagementController.viewExportDetail);
 
 router.get("/part", sparePartManagementController.getSpareParts);
 router.patch("/part/:id", sparePartManagementController.updateSparePart);

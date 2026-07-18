@@ -457,30 +457,34 @@ module.exports.approveExportByQuotation = async (quotationId, detailIds, manager
 
 module.exports.viewExportHistory = async () => {
   const result = await InventoryLog.findAll({
-    where: {
-      type: "OUT",
-    },
+    where: { type: "OUT" },
     attributes: [
-      "id",
       "receipt_code",
-      "createdAt",
-      "type",
-      "quantity",
-      "unit_price",
+      [db.sequelize.fn("MAX", db.sequelize.col("Inventory_Logs.createdAt")), "exported_at"],
+      [db.sequelize.fn("COUNT", db.sequelize.col("Inventory_Logs.id")), "item_count"],
+      [db.sequelize.fn("SUM", db.sequelize.literal("quantity * unit_price")), "total_amount"],
+      [db.sequelize.fn("MAX", db.sequelize.col("manager.fullName")), "manager_name"],
     ],
     include: [
-      {
-        model: User,
-        as: "manager",
-        attributes: ["fullName"],
-      },
-      {
-        model: SparePart,
-        as: "part",
-        attributes: ["sku", "name"],
-      },
+      { model: User, as: "manager", attributes: [] },
     ],
-    order: [["createdAt", "DESC"]],
+    group: ["Inventory_Logs.receipt_code"],
+    order: [[db.sequelize.fn("MAX", db.sequelize.col("Inventory_Logs.createdAt")), "DESC"]],
+    raw: true,
   });
   return result;
 };
+
+
+module.exports.viewExportDetail = async (receiptCode) => {
+  const result = await InventoryLog.findAll({
+    where: { type: "OUT", receipt_code: receiptCode },
+    attributes: ["id", "receipt_code", "createdAt", "quantity", "unit_price"],
+    include: [
+      { model: SparePart, as: "part", attributes: ["sku", "name"] },
+    ],
+    order: [["id", "ASC"]],
+  });
+  return result;
+};
+

@@ -127,3 +127,15 @@ module.exports.viewExportHistory = async (req, res) => {
     });
   }
 };
+
+module.exports.viewExportDetail = async (req, res) => {
+  try {
+    const { receiptCode } = req.params;
+    const result = await ImportAndExportManagement.viewExportDetail(receiptCode);
+    return res.status(200).json({ data: result });
+  } catch (error) {
+    return res.status(error.status || 500).json({
+      message: error.message || "Internal server error",
+    });
+  }
+};
