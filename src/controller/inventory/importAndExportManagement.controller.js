@@ -88,6 +88,9 @@ module.exports.approveExportByQuotation = async (req, res) => {
   try {
     const manager_id = res.locals.user.id;
     const { quotationId } = req.params;
+    const { detailIds } = req.body;
+        console.log("params:", req.params, "body:", req.body);
+
     const validation = approveExportSchema.safeParse({
       quotationId: Number(quotationId),
     });
@@ -98,6 +101,7 @@ module.exports.approveExportByQuotation = async (req, res) => {
     }
     const result = await ImportAndExportManagement.approveExportByQuotation(
       Number(quotationId),
+      detailIds,
       manager_id,
     );
     return res.status(200).json({
@@ -117,6 +121,18 @@ module.exports.viewExportHistory = async (req, res) => {
     return res.status(200).json({
       data: result,
     });
+  } catch (error) {
+    return res.status(error.status || 500).json({
+      message: error.message || "Internal server error",
+    });
+  }
+};
+
+module.exports.viewExportDetail = async (req, res) => {
+  try {
+    const { receiptCode } = req.params;
+    const result = await ImportAndExportManagement.viewExportDetail(receiptCode);
+    return res.status(200).json({ data: result });
   } catch (error) {
     return res.status(error.status || 500).json({
       message: error.message || "Internal server error",

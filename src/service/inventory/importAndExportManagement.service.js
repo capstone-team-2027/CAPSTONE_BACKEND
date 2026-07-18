@@ -10,6 +10,11 @@ const Quotation = db.Quotations;
 const QuotationDetail = db.Quotation_Details;
 const sparePartService = require("../../service/inventory/sparePartManagement.service");
 const geminiClient = require("../../config/gemini.config");
+const Task = db.Task;
+const Service_Orders = db.Service_Orders;
+const Vehicles = db.Vehicles;
+const Vehicle_Models = db.Vehicle_Models;
+const Customers = db.Customers;
 
 const normalizeName = (str) =>
   (str || "")
@@ -348,19 +353,15 @@ module.exports.viewImportHistory = async () => {
 module.exports.getApprovedQuotesWithParts = async () => {
   const result = await Quotation.findAll({
     where: { status: "APPROVED" },
-    attributes: [
-      "id",
-      "service_order_id",
-      "total_amount",
-      "approved_at",
-      "note",
-      "createdAt",
-    ],
+    attributes: ["id", "total_amount", "status","approved_at", "note", "createdAt"],
     include: [
       {
         model: QuotationDetail,
         as: "items",
-        where: { spare_part_id: { [Op.ne]: null } },
+        where: {
+          spare_part_id: { [Op.ne]: null },
+          status: "PENDING",
+        },
         attributes: ["id", "spare_part_id", "quantity", "unit_price", "amount"],
         include: [
           {
@@ -370,26 +371,36 @@ module.exports.getApprovedQuotesWithParts = async () => {
           },
         ],
       },
+      {
+        model: User,
+        as: "creator",
+        attributes: ["id", "fullName"],
+      }
     ],
     order: [["approved_at", "DESC"]],
   });
   return result;
 };
 
-module.exports.approveExportByQuotation = async (quotationId, managerId) => {
+
+module.exports.approveExportByQuotation = async (quotationId, detailIds, managerId) => {
   return await db.sequelize.transaction(async (t) => {
     const quotation = await Quotation.findByPk(quotationId, {
       include: [
         {
+          model: Task,
+          as: "task",
+          attributes: ["id", "service_order_id"],
+        },
+        {
           model: QuotationDetail,
           as: "items",
-          where: { spare_part_id: { [Op.ne]: null } },
-          include: [
-            {
-              model: SparePart,
-              as: "sparePart",
-            },
-          ],
+          where: {
+            id: detailIds,
+            spare_part_id: { [Op.ne]: null },
+            status: "PENDING",
+          },
+          include: [{ model: SparePart, as: "sparePart" }],
         },
       ],
       transaction: t,
@@ -398,10 +409,10 @@ module.exports.approveExportByQuotation = async (quotationId, managerId) => {
       throw { status: 404, message: "Không tìm thấy báo giá" };
     }
     if (quotation.status !== "APPROVED") {
-      throw {
-        status: 400,
-        message: "Chỉ có thể xuất kho cho báo giá đã được khách duyệt",
-      };
+      throw { status: 400, message: "Chỉ có thể xuất kho cho báo giá đã được khách duyệt" };
+    }
+    if (quotation.items.length !== detailIds.length) {
+      throw { status: 400, message: "Có dòng không hợp lệ hoặc đã được xuất kho" };
     }
     const now = new Date();
     const day = String(now.getDate()).padStart(2, "0");
@@ -413,11 +424,11 @@ module.exports.approveExportByQuotation = async (quotationId, managerId) => {
       order: [["receipt_code", "DESC"]],
       transaction: t,
     });
-    let next = 1;
-    if (last?.receipt_code) {
-      next = parseInt(last.receipt_code.slice(prefix.length), 10) + 1;
-    }
+    let next = last?.receipt_code
+      ? parseInt(last.receipt_code.slice(prefix.length), 10) + 1
+      : 1;
     const receipt_code = `${prefix}${String(next).padStart(4, "0")}`;
+
     const logsData = [];
     for (const item of quotation.items) {
       const part = item.sparePart;
@@ -427,14 +438,12 @@ module.exports.approveExportByQuotation = async (quotationId, managerId) => {
           message: `Phụ tùng "${part.name}" không đủ tồn kho (còn ${part.stock_quantity}, cần ${item.quantity})`,
         };
       }
-      await part.decrement("stock_quantity", {
-        by: item.quantity,
-        transaction: t,
-      });
+      await part.decrement("stock_quantity", { by: item.quantity, transaction: t });
+      await item.update({ status: "EXPORTED" }, { transaction: t });
       logsData.push({
         receipt_code,
         part_id: part.id,
-        service_order_id: quotation.service_order_id || null,
+        service_order_id: quotation.task?.service_order_id || null,
         type: "OUT",
         quantity: item.quantity,
         unit_price: item.unit_price,
@@ -442,37 +451,40 @@ module.exports.approveExportByQuotation = async (quotationId, managerId) => {
       });
     }
     await InventoryLog.bulkCreate(logsData, { transaction: t });
-    await quotation.update({ status: "EXPORTED" }, { transaction: t });
-    return { receipt_code, quotation_id: quotationId };
+    return { receipt_code, exported_count: logsData.length };
   });
 };
 
 module.exports.viewExportHistory = async () => {
   const result = await InventoryLog.findAll({
-    where: {
-      type: "OUT",
-    },
+    where: { type: "OUT" },
     attributes: [
-      "id",
       "receipt_code",
-      "createdAt",
-      "type",
-      "quantity",
-      "unit_price",
+      [db.sequelize.fn("MAX", db.sequelize.col("Inventory_Logs.createdAt")), "exported_at"],
+      [db.sequelize.fn("COUNT", db.sequelize.col("Inventory_Logs.id")), "item_count"],
+      [db.sequelize.fn("SUM", db.sequelize.literal("quantity * unit_price")), "total_amount"],
+      [db.sequelize.fn("MAX", db.sequelize.col("manager.fullName")), "manager_name"],
     ],
     include: [
-      {
-        model: User,
-        as: "manager",
-        attributes: ["fullName"],
-      },
-      {
-        model: SparePart,
-        as: "part",
-        attributes: ["sku", "name"],
-      },
+      { model: User, as: "manager", attributes: [] },
     ],
-    order: [["createdAt", "DESC"]],
+    group: ["Inventory_Logs.receipt_code"],
+    order: [[db.sequelize.fn("MAX", db.sequelize.col("Inventory_Logs.createdAt")), "DESC"]],
+    raw: true,
   });
   return result;
 };
+
+
+module.exports.viewExportDetail = async (receiptCode) => {
+  const result = await InventoryLog.findAll({
+    where: { type: "OUT", receipt_code: receiptCode },
+    attributes: ["id", "receipt_code", "createdAt", "quantity", "unit_price"],
+    include: [
+      { model: SparePart, as: "part", attributes: ["sku", "name"] },
+    ],
+    order: [["id", "ASC"]],
+  });
+  return result;
+};
+

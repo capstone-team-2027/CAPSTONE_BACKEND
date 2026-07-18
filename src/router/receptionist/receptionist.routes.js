@@ -31,6 +31,6 @@ router.get("/notifications/unread-count", notificationController.getUnreadCount)
 router.get("/notification/:id", notificationController.getNotificationById)
 router.put("/notification/:id/read", notificationController.markAsRead)
 
-
+router.patch("/quotation/:id/approve",quoteManagementController.approveQuote);
 
 module.exports = router;

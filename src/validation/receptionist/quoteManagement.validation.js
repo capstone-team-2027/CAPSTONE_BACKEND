@@ -50,9 +50,7 @@ const createQuotationSchema = z.object({
   task_id: z
     .number({ error: "Công việc phải là số" })
     .int("Công việc không hợp lệ")
-    .positive("Công việc không hợp lệ")
-    .optional(),
-
+    .positive("Công việc không hợp lệ"),
   items: z
     .array(quotationDetailSchema)
     .min(1, "Báo giá phải có ít nhất một dòng"),
