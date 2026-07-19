@@ -11,6 +11,7 @@ const Customers = db.Customers;
 const Users = db.User;
 const Vehicles = db.Vehicles;
 const Vehicle_Models = db.Vehicle_Models;
+const { emitProgress } = require("../../util/socket.util");
 
 module.exports.getTaskAssignment = async (technicianId) => {
   const serviceOrders = await db.Service_Orders.findAll({
@@ -272,24 +273,31 @@ module.exports.startTask = async (taskAssignmentId, technicianId) => {
   return assignment;
 };
 
-
 module.exports.completeTask = async (taskAssignmentId, technicianId) => {
-  const taskAssignment = await Task_Assignments.findOne(
-    {
-      where: {
-        id: taskAssignmentId,
-        technician_id: technicianId,
-        status: "IN_PROGRESS"
-      
+  const taskAssignment = await Task_Assignments.findOne({
+    where: {
+      id: taskAssignmentId,
+      technician_id: technicianId,
+      status: "IN_PROGRESS",
+    },
+    include: [
+      {
+        model: Tasks,
+        as: "task",
+        attributes: ["id", "service_order_id"],
       },
-    }
-  );
-  if(!taskAssignment) {
+    ],
+  });
+  if (!taskAssignment) {
     throw { status: 404, message: "Không tìm thấy công việc đang thực hiện." };
-  };
+  }
   await taskAssignment.update({
     status: "PENDING_QC",
     actual_end_time: new Date(),
+  });
+  emitProgress(taskAssignment.task.service_order_id, {
+    type: "TASK_PENDING_QC",
+    taskId: taskAssignment.task.id,
   });
   return taskAssignment;
 };
