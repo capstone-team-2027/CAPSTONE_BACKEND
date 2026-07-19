@@ -71,19 +71,10 @@ module.exports.completeTask = async (req, res) => {
   try {
     const { taskAssignmentId } = req.body;
     const technicianId = res.locals.user.id;
-
-    if (!taskAssignmentId) {
-      return res.status(400).json({
-        success: false,
-        message: "Vui lòng truyền taskAssignmentId vào body.",
-      });
-    }
-
     const result = await taskAssignmentService.completeTask(
       taskAssignmentId,
       technicianId,
     );
-
     return res.status(200).json({
       success: true,
       message: "Đã hoàn thành công việc thành công.",

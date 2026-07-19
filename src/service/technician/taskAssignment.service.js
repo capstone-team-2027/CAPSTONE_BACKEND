@@ -273,87 +273,26 @@ module.exports.startTask = async (taskAssignmentId, technicianId) => {
   return assignment;
 };
 
+
 module.exports.completeTask = async (taskAssignmentId, technicianId) => {
-  const assignment = await db.Task_Assignment.findOne({
-    where: { id: taskAssignmentId, technician_id: technicianId },
-    include: [
-      {
-        model: db.Task,
-        as: "task",
-        include: [{ model: db.Service_Orders, as: "serviceOrder" }],
-      },
-    ],
-  });
-
-  if (!assignment) {
-    throw { status: 404, message: "Không tìm thấy phân công công việc." };
-  }
-
-  const serviceOrderId = assignment.task.service_order_id;
-
-  const allAssignments = await db.Task_Assignment.findAll({
-    where: { technician_id: technicianId, status: "IN_PROGRESS" },
-    include: [
-      {
-        model: db.Task,
-        as: "task",
-        where: { service_order_id: serviceOrderId },
-      },
-    ],
-  });
-
-  if (allAssignments.length === 0) {
-    throw {
-      status: 400,
-      message: "Không có công việc nào đang thực hiện để hoàn thành.",
-    };
-  }
-
-  for (const asg of allAssignments) {
-    asg.status = "COMPLETED";
-    asg.actual_end_time = new Date();
-    await asg.save();
-
-    const task = asg.task;
-
-    const uncompletedAssignmentsCount = await db.Task_Assignment.count({
+  const taskAssignment = await Task_Assignments.findOne(
+    {
       where: {
-        task_id: task.id,
-        status: { [db.Sequelize.Op.ne]: "COMPLETED" },
+        id: taskAssignmentId,
+        technician_id: technicianId,
+        status: "IN_PROGRESS"
+      
       },
-    });
-
-    if (uncompletedAssignmentsCount === 0) {
-      task.status = "COMPLETED";
-      await task.save();
     }
-  }
-
-  // 4. Kiểm tra xem toàn bộ Service Order đã hoàn thành chưa
-  const uncompletedTasksCount = await db.Task.count({
-    where: {
-      service_order_id: serviceOrderId,
-      status: { [db.Sequelize.Op.ne]: "COMPLETED" },
-    },
+  );
+  if(!taskAssignment) {
+    throw { status: 404, message: "Không tìm thấy công việc đang thực hiện." };
+  };
+  await taskAssignment.update({
+    status: "PENDING_QC",
+    actual_end_time: new Date(),
   });
-
-  if (uncompletedTasksCount === 0) {
-    const serviceOrder = assignment.task.serviceOrder;
-    serviceOrder.status = "COMPLETED";
-    await serviceOrder.save();
-
-    if (serviceOrder.appointment_id) {
-      const appointmentToUpdate = await db.Appointments.findByPk(
-        serviceOrder.appointment_id,
-      );
-      if (appointmentToUpdate && appointmentToUpdate.status !== "COMPLETED") {
-        appointmentToUpdate.status = "COMPLETED";
-        await appointmentToUpdate.save();
-      }
-    }
-  }
-
-  return assignment;
+  return taskAssignment;
 };
 
 module.exports.getAllComponents = async () => {
