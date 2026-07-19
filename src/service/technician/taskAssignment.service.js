@@ -19,7 +19,7 @@ module.exports.getTaskAssignment = async (technicianId) => {
       {
         model: db.Vehicles,
         as: "vehicle",
-        attributes: ["id", "license_plate", "vin_number"],
+        attributes: ["id", "license_plate", "vin_number", "color"],
         include: [
           {
             model: db.Vehicle_Models,
@@ -330,12 +330,6 @@ module.exports.createIssueReports = async (
   });
   if (!task || !taskAssignment) {
     throw { status: 404, message: "Không tìm thấy công việc đang thực hiện." };
-  }
-  if (task.type !== "INSPECTION") {
-    throw {
-      status: 400,
-      message: "Chỉ có thể báo cáo sự cố khi đang kiểm tra xe",
-    };
   }
   const records = issues.map((item) => ({
     component_id: item.component_id,
