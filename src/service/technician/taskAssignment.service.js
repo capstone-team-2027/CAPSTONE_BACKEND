@@ -65,7 +65,7 @@ module.exports.getTaskAssignment = async (technicianId) => {
         model: db.Task,
         as: "tasks",
         required: true,
-        where: { type: ["INSPECTION", "REPAIR"], status: ["PENDING", "IN_PROGRESS"] },
+        where: { status: ["PENDING", "IN_PROGRESS"] },
         include: [
           {
             model: db.Task_Assignment,
