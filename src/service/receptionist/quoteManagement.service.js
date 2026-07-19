@@ -442,6 +442,7 @@ module.exports.approveQuotation = async (id) => {
           service_order_id: inspectionTask.service_order_id,
           quotation_item_id: item.id,
           service_catalog_id: item.service_id,
+          type: "REPAIR",
           status: "PENDING",
         })),
         { transaction: t },

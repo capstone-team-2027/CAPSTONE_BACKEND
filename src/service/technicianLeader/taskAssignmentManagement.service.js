@@ -53,7 +53,7 @@ module.exports.getAllTasks = async () => {
         as: "tasks",
         required: true,
         where: { status: ["PENDING", "IN_PROGRESS"] },
-        attributes: ["id", "status", "createdAt"],
+        attributes: ["id", "type", "status", "createdAt"],
         include: [
           {
             model: Service_Catalog,

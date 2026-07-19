@@ -19,7 +19,7 @@ module.exports.getTaskAssignment = async (technicianId) => {
       {
         model: db.Vehicles,
         as: "vehicle",
-        attributes: ["id", "license_plate", "vin_number"],
+        attributes: ["id", "license_plate", "vin_number", "color"],
         include: [
           {
             model: db.Vehicle_Models,

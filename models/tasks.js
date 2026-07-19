@@ -47,6 +47,14 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.INTEGER,
         allowNull: true,
       },
+      type: {
+        type: DataTypes.STRING(50),
+        allowNull: false,
+        defaultValue: 'INSPECTION',
+        validate: {
+          isIn: [['INSPECTION', 'REPAIR']]
+        }
+      },
       status: {
         type: DataTypes.STRING(50),
         allowNull: false,
