@@ -11,6 +11,7 @@ const Customers = db.Customers;
 const Users = db.User;
 const Vehicles = db.Vehicles;
 const Vehicle_Models = db.Vehicle_Models;
+const { emitProgress } = require("../../util/socket.util");
 
 module.exports.getTaskAssignment = async (technicianId) => {
   const serviceOrders = await db.Service_Orders.findAll({
@@ -18,7 +19,7 @@ module.exports.getTaskAssignment = async (technicianId) => {
       {
         model: db.Vehicles,
         as: "vehicle",
-        attributes: ["id", "license_plate", "vin_number"],
+        attributes: ["id", "license_plate", "vin_number", "color"],
         include: [
           {
             model: db.Vehicle_Models,
@@ -65,7 +66,7 @@ module.exports.getTaskAssignment = async (technicianId) => {
         model: db.Task,
         as: "tasks",
         required: true,
-        where: { type: ["INSPECTION", "REPAIR"], status: ["PENDING", "IN_PROGRESS"] },
+        where: { status: ["PENDING", "IN_PROGRESS"] },
         include: [
           {
             model: db.Task_Assignment,
@@ -273,86 +274,32 @@ module.exports.startTask = async (taskAssignmentId, technicianId) => {
 };
 
 module.exports.completeTask = async (taskAssignmentId, technicianId) => {
-  const assignment = await db.Task_Assignment.findOne({
-    where: { id: taskAssignmentId, technician_id: technicianId },
-    include: [
-      {
-        model: db.Task,
-        as: "task",
-        include: [{ model: db.Service_Orders, as: "serviceOrder" }],
-      },
-    ],
-  });
-
-  if (!assignment) {
-    throw { status: 404, message: "Không tìm thấy phân công công việc." };
-  }
-
-  const serviceOrderId = assignment.task.service_order_id;
-
-  const allAssignments = await db.Task_Assignment.findAll({
-    where: { technician_id: technicianId, status: "IN_PROGRESS" },
-    include: [
-      {
-        model: db.Task,
-        as: "task",
-        where: { service_order_id: serviceOrderId },
-      },
-    ],
-  });
-
-  if (allAssignments.length === 0) {
-    throw {
-      status: 400,
-      message: "Không có công việc nào đang thực hiện để hoàn thành.",
-    };
-  }
-
-  for (const asg of allAssignments) {
-    asg.status = "COMPLETED";
-    asg.actual_end_time = new Date();
-    await asg.save();
-
-    const task = asg.task;
-
-    const uncompletedAssignmentsCount = await db.Task_Assignment.count({
-      where: {
-        task_id: task.id,
-        status: { [db.Sequelize.Op.ne]: "COMPLETED" },
-      },
-    });
-
-    if (uncompletedAssignmentsCount === 0) {
-      task.status = "COMPLETED";
-      await task.save();
-    }
-  }
-
-  // 4. Kiểm tra xem toàn bộ Service Order đã hoàn thành chưa
-  const uncompletedTasksCount = await db.Task.count({
+  const taskAssignment = await Task_Assignments.findOne({
     where: {
-      service_order_id: serviceOrderId,
-      status: { [db.Sequelize.Op.ne]: "COMPLETED" },
+      id: taskAssignmentId,
+      technician_id: technicianId,
+      status: "IN_PROGRESS",
     },
+    include: [
+      {
+        model: Tasks,
+        as: "task",
+        attributes: ["id", "service_order_id"],
+      },
+    ],
   });
-
-  if (uncompletedTasksCount === 0) {
-    const serviceOrder = assignment.task.serviceOrder;
-    serviceOrder.status = "COMPLETED";
-    await serviceOrder.save();
-
-    if (serviceOrder.appointment_id) {
-      const appointmentToUpdate = await db.Appointments.findByPk(
-        serviceOrder.appointment_id,
-      );
-      if (appointmentToUpdate && appointmentToUpdate.status !== "COMPLETED") {
-        appointmentToUpdate.status = "COMPLETED";
-        await appointmentToUpdate.save();
-      }
-    }
+  if (!taskAssignment) {
+    throw { status: 404, message: "Không tìm thấy công việc đang thực hiện." };
   }
-
-  return assignment;
+  await taskAssignment.update({
+    status: "PENDING_QC",
+    actual_end_time: new Date(),
+  });
+  emitProgress(taskAssignment.task.service_order_id, {
+    type: "TASK_PENDING_QC",
+    taskId: taskAssignment.task.id,
+  });
+  return taskAssignment;
 };
 
 module.exports.getAllComponents = async () => {
@@ -383,12 +330,6 @@ module.exports.createIssueReports = async (
   });
   if (!task || !taskAssignment) {
     throw { status: 404, message: "Không tìm thấy công việc đang thực hiện." };
-  }
-  if (task.type !== "INSPECTION") {
-    throw {
-      status: 400,
-      message: "Chỉ có thể báo cáo sự cố khi đang kiểm tra xe",
-    };
   }
   const records = issues.map((item) => ({
     component_id: item.component_id,
