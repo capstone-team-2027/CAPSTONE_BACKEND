@@ -12,7 +12,6 @@ const Users = db.User;
 const Vehicles = db.Vehicles;
 const Vehicle_Models = db.Vehicle_Models;
 
-
 module.exports.getTaskAssignment = async (technicianId) => {
   const serviceOrders = await db.Service_Orders.findAll({
     include: [
@@ -66,7 +65,7 @@ module.exports.getTaskAssignment = async (technicianId) => {
         model: db.Task,
         as: "tasks",
         required: true,
-        where: { status: ["PENDING", "IN_PROGRESS"] },
+        where: { type: ["INSPECTION", "REPAIR"], status: ["PENDING", "IN_PROGRESS"] },
         include: [
           {
             model: db.Task_Assignment,
@@ -385,6 +384,12 @@ module.exports.createIssueReports = async (
   if (!task || !taskAssignment) {
     throw { status: 404, message: "Không tìm thấy công việc đang thực hiện." };
   }
+  if (task.type !== "INSPECTION") {
+    throw {
+      status: 400,
+      message: "Chỉ có thể báo cáo sự cố khi đang kiểm tra xe",
+    };
+  }
   const records = issues.map((item) => ({
     component_id: item.component_id,
     task_id: task_id,
@@ -398,75 +403,75 @@ module.exports.createIssueReports = async (
 };
 
 module.exports.getIssuesReportHistory = async (technicianId) => {
-    const issues = await Issues.findAll({
-        attributes: ["id", "error_description", "note", "createdAt"],
+  const issues = await Issues.findAll({
+    attributes: ["id", "error_description", "note", "createdAt"],
+    include: [
+      {
+        model: Tasks,
+        as: "task",
+        attributes: ["id", "status"],
+        required: true,
         include: [
-            {
-                model: Tasks,
-                as: "task",
-                attributes: ["id", "status"],
-                required: true,
+          {
+            model: Task_Assignments,
+            as: "assignments",
+            attributes: [],
+            where: { technician_id: technicianId },
+            required: true,
+          },
+          {
+            model: Service_Order,
+            as: "serviceOrder",
+            attributes: ["id"],
+            include: [
+              {
+                model: Vehicles,
+                as: "vehicle",
+                attributes: ["id", "color", "license_plate"],
                 include: [
-                    {
-                        model: Task_Assignments,
-                        as: "assignments",              
-                        attributes: [],
-                        where: { technician_id: technicianId },
-                        required: true,
-                    },
-                    {
-                        model: Service_Order,
-                        as: "serviceOrder",           
-                        attributes: ["id"],
-                        include: [
-                            {
-                                model: Vehicles,
-                                as: "vehicle",
-                                attributes: ["id","color" ,"license_plate"],                         
-                                include: [
-                                    {
-                                        model: Vehicle_Models,
-                                        as: "model",
-                                        attributes: ["id", "model_name"]
-                                    },
-                                    {
-                                        model: Customers,
-                                        as: "customer",
-                                        attributes: ["id", "name", "phone"],
-                                        include: [
-                                            {
-                                                model: Users,
-                                                as: "user",
-                                                attributes: ["id", "fullName", "phoneNumber"],
-                                            },
-                                        ],
-                                    },
-                                ],
-                            },
-                        ],
-                    },
+                  {
+                    model: Vehicle_Models,
+                    as: "model",
+                    attributes: ["id", "model_name"],
+                  },
+                  {
+                    model: Customers,
+                    as: "customer",
+                    attributes: ["id", "name", "phone"],
+                    include: [
+                      {
+                        model: Users,
+                        as: "user",
+                        attributes: ["id", "fullName", "phoneNumber"],
+                      },
+                    ],
+                  },
                 ],
-            },
-            {
-                model: Components,
-                as: "component",
-                attributes: ["id", "name", "parent_id"],
-                include: [
-                    {
-                        model: Components,
-                        as: "parent",
-                        attributes: ["id", "name"],
-                    },
-                    {
-                        model: Components,
-                        as: "children",
-                        attributes: ["id", "name"],
-                    },
-                ],
-            },
+              },
+            ],
+          },
         ],
-        order: [["createdAt", "DESC"]],
-    });
+      },
+      {
+        model: Components,
+        as: "component",
+        attributes: ["id", "name", "parent_id"],
+        include: [
+          {
+            model: Components,
+            as: "parent",
+            attributes: ["id", "name"],
+          },
+          {
+            model: Components,
+            as: "children",
+            attributes: ["id", "name"],
+          },
+        ],
+      },
+    ],
+    order: [["createdAt", "DESC"]],
+  });
 
-    return issues;
+  return issues;
 };

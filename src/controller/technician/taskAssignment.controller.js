@@ -1,6 +1,7 @@
 const { success } = require("zod");
 const taskAssignmentService = require("../../service/technician/taskAssignment.service");
 const {createIssueReportSchema} = require ("../../validation/technician/taskAssignment.validation");
+
 module.exports.getTaskAssignment = async (req, res) => {
   try {
     const technicianId = res.locals.user.id;

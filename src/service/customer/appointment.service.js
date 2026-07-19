@@ -307,6 +307,7 @@ module.exports.createAppointment = async (userId, data) => {
                 const task = await db.Task.create({
                     service_order_id: serviceOrder.id,
                     service_catalog_id: null,
+                    type: "INSPECTION",
                     status: 'PENDING'
                 }, { transaction });
 
@@ -323,6 +324,7 @@ module.exports.createAppointment = async (userId, data) => {
                     const task = await db.Task.create({
                         service_order_id: serviceOrder.id,
                         service_catalog_id: catalogId,
+                        type: "REPAIR",
                         status: 'PENDING'
                     }, { transaction });
 
