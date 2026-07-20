@@ -69,6 +69,9 @@ io.on("connection", (socket) => {
   socket.on("leave-vehicle-tracking", (serviceOrderId) => {
     socket.leave(`service-order-${serviceOrderId}`);
   });
+  socket.on('join-role', (roleCode) => {
+    socket.join(`role-${roleCode}`);
+});
 });
 const ROUTES = require("./src/router/registry.routes");
 require("./src/jobs/pricingRule.job");

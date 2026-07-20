@@ -340,6 +340,19 @@ module.exports.createIssueReports = async (
   const issuesRecords = await Issues.bulkCreate(records);
   await task.update({ status: "COMPLETED" });
   await taskAssignment.update({ status: "COMPLETED" });
+  await notifyRole('RECEPTIONIST', {
+    title: "Có báo cáo lỗi mới",
+    content: `Kỹ thuật viên vừa ghi nhận ${issuesRecords.length} lỗi cần lập báo giá.`,
+    notificationType: 'ISSUE_REPORT',
+    referenceId: task.service_order_id,
+  }, 'new_notification', {
+    type: 'ISSUE_REPORT',
+    serviceOrderId: task.service_order_id,
+  });
+  emitProgress(task.service_order_id, {
+    type: "INSPECTION_DONE",
+    serviceOrderId: task.service_order_id,
+  });
   return issuesRecords;
 };
 
