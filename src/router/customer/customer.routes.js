@@ -12,9 +12,10 @@ const quoteApprovalController = require("../../controller/customer/quoteApproval
 router.get("/profile", profileController.getProfile);
 router.put("/profile", upload.single("avatar"), profileController.updateProfile);
 router.put("/change-password", profileController.changePassword);
+router.patch("/location", profileController.updateLocation);
 
-router.patch("/quotation/:id/approve",quoteApprovalController.approveQuote);
-router.patch("/quotation/:id/reject",quoteApprovalController.rejectQuote);
+router.patch("/quotation/:id/approve", quoteApprovalController.approveQuote);
+router.patch("/quotation/:id/reject", quoteApprovalController.rejectQuote);
 
 
 router.get("/appointment", appointmentController.getAppointment);

@@ -19,7 +19,12 @@ module.exports.getServiceCategories = async (req, res) => {
 module.exports.getServiceCatalog = async (req, res) => {
     try {
         const lang = req.query.lang || 'vi';
-        const result = await guestService.getServiceCatalog(lang);
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 16;
+        const search = req.query.search || '';
+        const categoryId = req.query.category_id ? parseInt(req.query.category_id) : null;
+
+        const result = await guestService.getServiceCatalog(lang, page, limit, search, categoryId);
         return res.status(200).json({
             data: result,
         });
@@ -33,7 +38,11 @@ module.exports.getServiceCatalog = async (req, res) => {
 module.exports.getServiceCombos = async (req, res) => {
     try {
         const lang = req.query.lang || 'vi';
-        const result = await guestService.getServiceCombos(lang);
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 16;
+        const search = req.query.search || '';
+
+        const result = await guestService.getServiceCombos(lang, page, limit, search);
         return res.status(200).json({
             data: result,
         });
