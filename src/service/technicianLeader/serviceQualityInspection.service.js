@@ -9,6 +9,9 @@ const Vehicles = db.Vehicles;
 const Vehicle_Models = db.Vehicle_Models;
 const Service_Catalog = db.Service_Catalog;
 const { Op } = require("sequelize");
+const { notifyRole,notifyUser } = require("../../util/notification.util");
+const { emitProgress } = require("../../util/socket.util");
+const ROLES = require("../../constants/roles");
 
 module.exports.getServiceOrdersPendingFinalQC = async () => {
   const orders = await Service_Order.findAll({
@@ -69,9 +72,9 @@ module.exports.getServiceOrdersPendingFinalQC = async () => {
   return orders;
 };
 
-module.exports.approveFinalInspection = async (serviceOrderId, headId) => {
-  return await db.sequelize.transaction(async (t) => {
-    const serviceOrder = await db.Service_Orders.findByPk(serviceOrderId, {
+module.exports.approveFinalInspection = async (serviceOrderId) => {
+  const serviceOrder = await db.sequelize.transaction(async (t) => {
+    const serviceOrder = await Service_Order.findByPk(serviceOrderId, {
       attributes: ["id", "status", "appointment_id"],
       transaction: t,
     });
@@ -102,46 +105,100 @@ module.exports.approveFinalInspection = async (serviceOrderId, headId) => {
       { transaction: t },
     );
     if (serviceOrder.appointment_id) {
-      await Appointment.update(
+      await db.Appointments.update(
         { status: "COMPLETED" },
         { where: { id: serviceOrder.appointment_id }, transaction: t },
       );
     }
-
     return serviceOrder;
   });
+  await notifyRole(
+    ROLES.RECEPTIONIST,
+    {
+      title: "Xe sẵn sàng giao",
+      content: `Lệnh sửa chữa #${serviceOrderId} đã nghiệm thu, có thể gọi khách nhận xe.`,
+      notificationType: "READY_FOR_DELIVERY",
+      referenceId: serviceOrderId,
+    },
+    "new_notification",
+    { type: "READY_FOR_DELIVERY", serviceOrderId },
+  );
+  emitProgress(serviceOrderId, {
+    type: "READY_FOR_DELIVERY",
+    serviceOrderId,
+  });
+  return serviceOrder;
 };
 
-
-module.exports.rejectFinalInspection = async (serviceOrderId, taskIds, reason, headId) => {
-  return await db.sequelize.transaction(async (t) => {
-    const serviceOrder = await Service_Order.findByPk(serviceOrderId, {
-      attributes: ["id", "status"],
-      transaction: t,
-    });
-    if (!serviceOrder) {
-      throw { status: 404, message: "Không tìm thấy lệnh sửa chữa" };
-    }
-    if (serviceOrder.status !== "PENDING_FINAL_QC") {
-      throw { status: 400, message: "Lệnh sửa chữa không ở trạng thái chờ nghiệm thu" };
-    }
-    const tasks = await Tasks.findAll({
-      where: { id: taskIds, service_order_id: serviceOrderId },
-      attributes: ["id"],
-      transaction: t,
-    });
-    if (tasks.length !== taskIds.length) {
-      throw { status: 400, message: "Có công việc không thuộc lệnh sửa chữa này" };
-    }
-    await Tasks.update(
-      { status: "IN_PROGRESS" },
-      { where: { id: taskIds }, transaction: t },
-    );
-    await Task_Assignments.update(
-      { status: "IN_PROGRESS", remarks: reason || null },
-      { where: { task_id: taskIds }, transaction: t },
-    );
-    await serviceOrder.update({ status: "IN_PROGRESS" }, { transaction: t });
-    return serviceOrder;
+module.exports.rejectFinalInspection = async (
+  serviceOrderId,
+  taskIds,
+  reason,
+) => {
+  const { serviceOrder, technicianIds } = await db.sequelize.transaction(
+    async (t) => {
+      const serviceOrder = await Service_Order.findByPk(serviceOrderId, {
+        attributes: ["id", "status"],
+        transaction: t,
+      });
+      if (!serviceOrder) {
+        throw { status: 404, message: "Không tìm thấy lệnh sửa chữa" };
+      }
+      if (serviceOrder.status !== "PENDING_FINAL_QC") {
+        throw {
+          status: 400,
+          message: "Lệnh sửa chữa không ở trạng thái chờ nghiệm thu",
+        };
+      }
+      const tasks = await Tasks.findAll({
+        where: { id: taskIds, service_order_id: serviceOrderId },
+        attributes: ["id"],
+        transaction: t,
+      });
+      if (tasks.length !== taskIds.length) {
+        throw {
+          status: 400,
+          message: "Có công việc không thuộc lệnh sửa chữa này",
+        };
+      }
+      const assignments = await Task_Assignments.findAll({
+        where: { task_id: taskIds },
+        attributes: ["technician_id"],
+        transaction: t,
+      });
+      const technicianIds = [
+        ...new Set(assignments.map((a) => a.technician_id)),
+      ];
+      await Tasks.update(
+        { status: "IN_PROGRESS" },
+        { where: { id: taskIds }, transaction: t },
+      );
+      await Task_Assignments.update(
+        { status: "IN_PROGRESS", remarks: reason || null },
+        { where: { task_id: taskIds }, transaction: t },
+      );
+      await serviceOrder.update({ status: "IN_PROGRESS" }, { transaction: t });
+      return { serviceOrder, technicianIds };
+    },
+  );
+  emitProgress(serviceOrderId, {
+    type: "QC_REJECTED",
+    serviceOrderId,
   });
+  for (const technicianId of technicianIds) {
+    await notifyUser(
+      technicianId,
+      {
+        title: "Công việc cần làm lại",
+        content: reason
+          ? `Nghiệm thu không đạt: ${reason}`
+          : "Công việc của bạn chưa đạt nghiệm thu, cần kiểm tra lại.",
+        notificationType: "QC_REJECTED",
+        referenceId: serviceOrderId,
+      },
+      "new_notification",
+      { type: "QC_REJECTED", serviceOrderId },
+    );
+  }
+  return serviceOrder;
 };

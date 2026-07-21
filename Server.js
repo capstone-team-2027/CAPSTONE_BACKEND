@@ -71,7 +71,10 @@ io.on("connection", (socket) => {
   });
   socket.on('join-role', (roleCode) => {
     socket.join(`role-${roleCode}`);
-});
+  });
+  socket.on('join-user', (userId) => {
+    socket.join(`user-${userId}`);
+  });
 });
 const ROUTES = require("./src/router/registry.routes");
 require("./src/jobs/pricingRule.job");

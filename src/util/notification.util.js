@@ -41,7 +41,26 @@ const notifyRole = async (
     console.error(`Lỗi khi tạo thông báo cho role ${roleCode}:`, error);
   }
 };
+const notifyUser = async (userId, notificationData, socketEvent = 'new_notification', socketPayload = {}) => {
+    try {
+        await db.Notification.create({
+            recipientId: userId,
+            title: notificationData.title,
+            content: notificationData.content,
+            notificationType: notificationData.notificationType,
+            referenceId: notificationData.referenceId || null,
+            link: notificationData.link || null,
+            isRead: false,
+            priority: notificationData.priority || 'NORMAL'
+        });
 
+        if (global._io) {
+            global._io.to(`user-${userId}`).emit(socketEvent, socketPayload);
+        }
+    } catch (error) {
+        console.error(`Lỗi khi tạo thông báo cho user ${userId}:`, error);
+    }
+};
 module.exports = {
-  notifyRole,
+  notifyRole,notifyUser
 };

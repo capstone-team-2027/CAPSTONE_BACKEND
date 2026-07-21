@@ -12,6 +12,9 @@ const Quotation_Details = db.Quotation_Details;
 const Vehicle_Issues = db.Vehicle_Issues;
 const Vehicle_Components = db.Vehicle_Components;
 const Task_Assignment = db.Task_Assignment;
+const { notifyRole,notifyUser } = require("../../util/notification.util");
+const { emitProgress } = require("../../util/socket.util");
+const ROLES = require("../../constants/roles");
 
 module.exports.getAllTasks = async () => {
   const serviceOrders = await db.Service_Orders.findAll({
@@ -153,6 +156,19 @@ module.exports.assignTask = async (data) => {
     );
     return assignments;
   });
+  await notifyUser(
+    data.technician_id,
+    {
+      title: "Bạn được giao công việc mới",
+      content: `Bạn vừa được phân công ${data.task_ids.length} công việc.`,
+      notificationType: "TASK_ASSIGNED",
+    },
+    "new_notification",
+    {
+      type: "TASK_ASSIGNED",
+    },
+  );
+  return assignments;
 };
 
 module.exports.getAssignmentHistory = async () => {
@@ -267,57 +283,86 @@ module.exports.getAssignmentHistory = async () => {
   return serviceOrders;
 };
 
-
 module.exports.updateAssignment = async (assignmentId, technicianId) => {
-  return await db.sequelize.transaction(async (t) => {
-    const assignment = await db.Task_Assignment.findByPk(assignmentId, {
-      transaction: t,
-    });
-    if (!assignment) {
-      throw { status: 404, message: "Không tìm thấy phân công" };
-    }
-    if (assignment.status === "COMPLETED") {
-      throw {
-        status: 400,
-        message: "Phân công đã hoàn thành, không thể đổi người",
-      };
-    }
-    const technician = await db.User.findOne({
-      where: { id: technicianId, status: "ACTIVE" },
-      include: [
-        {
-          model: db.Role,
-          as: "role",
-          attributes: [],
-          where: { roleCode: "TECHNICIAN" },
+  const { assignment, oldTechnicianId } = await db.sequelize.transaction(
+    async (t) => {
+      const assignment = await db.Task_Assignment.findByPk(assignmentId, {
+        transaction: t,
+      });
+      if (!assignment) {
+        throw { status: 404, message: "Không tìm thấy phân công" };
+      }
+      if (assignment.status === "COMPLETED") {
+        throw {
+          status: 400,
+          message: "Phân công đã hoàn thành, không thể đổi người",
+        };
+      }
+      const oldTechnicianId = assignment.technician_id;
+      const technician = await db.User.findOne({
+        where: { id: technicianId, status: "ACTIVE" },
+        include: [
+          {
+            model: db.Role,
+            as: "role",
+            attributes: [],
+            where: { roleCode: "TECHNICIAN" },
+          },
+        ],
+        transaction: t,
+      });
+      if (!technician) {
+        throw {
+          status: 400,
+          message: "Kỹ thuật viên không hợp lệ hoặc đang không hoạt động",
+        };
+      }
+      const duplicated = await db.Task_Assignment.findOne({
+        where: {
+          task_id: assignment.task_id,
+          technician_id: technicianId,
+          id: { [Op.ne]: assignmentId },
         },
-      ],
-      transaction: t,
-    });
-    if (!technician) {
-      throw {
-        status: 400,
-        message: "Kỹ thuật viên không hợp lệ hoặc đang không hoạt động",
-      };
-    }
-    const duplicated = await db.Task_Assignment.findOne({
-      where: {
-        task_id: assignment.task_id,
-        technician_id: technicianId,
-        id: { [Op.ne]: assignmentId },
-      },
-      transaction: t,
-    });
-    if (duplicated) {
-      throw {
-        status: 400,
-        message: "Kỹ thuật viên này đã được phân công việc này",
-      };
-    }
+        transaction: t,
+      });
+      if (duplicated) {
+        throw {
+          status: 400,
+          message: "Kỹ thuật viên này đã được phân công việc này",
+        };
+      }
 
-    await assignment.update({ technician_id: technicianId }, { transaction: t });
-    return assignment;
-  });
+      await assignment.update(
+        { technician_id: technicianId },
+        { transaction: t },
+      );
+      return { assignment, oldTechnicianId };
+    },
+  );
+  await notifyUser(
+    technicianId,
+    {
+      title: "Bạn được giao công việc mới",
+      content: "Bạn vừa được chuyển giao một công việc.",
+      notificationType: "TASK_ASSIGNED",
+    },
+    "new_notification",
+    { type: "TASK_ASSIGNED" },
+  );
+
+  if (oldTechnicianId && oldTechnicianId !== technicianId) {
+    await notifyUser(
+      oldTechnicianId,
+      {
+        title: "Công việc đã chuyển cho người khác",
+        content: "Một công việc của bạn vừa được chuyển giao.",
+        notificationType: "TASK_UNASSIGNED",
+      },
+      "new_notification",
+      { type: "TASK_UNASSIGNED" },
+    );
+  }
+  return assignment;
 };
 
 module.exports.getAllTechnician = async () => {
@@ -385,11 +430,12 @@ module.exports.getAllTechnician = async () => {
 
     return {
       ...data,
-      assignments: active,           // chỉ trả về việc chưa xong
-      total_assigned: all.length,    // tổng việc từng được giao
+      assignments: active, // chỉ trả về việc chưa xong
+      total_assigned: all.length, // tổng việc từng được giao
       completed_count: completed.length,
       remaining_count: active.length,
-      in_progress_count: active.filter((a) => a.status === "IN_PROGRESS").length,
+      in_progress_count: active.filter((a) => a.status === "IN_PROGRESS")
+        .length,
       pending_count: active.filter((a) => a.status === "ASSIGNED").length,
       paused_count: active.filter((a) => a.status === "PAUSED").length,
     };
