@@ -1,6 +1,7 @@
 const serviceQualityInspectionService = require("../../service/technicianLeader/serviceQualityInspection.service");
 const {rejectFinalInspectionSchema} = require("../../validation/technicianLeader/serviceQualityInspection.validation")
-module.exports.getTasksPendingQC = async (req, res) => {
+
+module.exports.getServiceOrdersPendingQC = async (req, res) => {
   try {
     const result = await serviceQualityInspectionService.getServiceOrdersPendingFinalQC();
     return res.status(200).json({

@@ -290,15 +290,42 @@ module.exports.completeTask = async (taskAssignmentId, technicianId) => {
   });
   if (!taskAssignment) {
     throw { status: 404, message: "Không tìm thấy công việc đang thực hiện." };
-  }
+  };
   await taskAssignment.update({
-    status: "PENDING_QC",
+    status: "COMPLETED",
     actual_end_time: new Date(),
   });
   emitProgress(taskAssignment.task.service_order_id, {
-    type: "TASK_PENDING_QC",
+    type: "COMPLETED",
     taskId: taskAssignment.task.id,
   });
+  const taskId = taskAssignment.task.id;
+  const serviceOrderId = taskAssignment.task.service_order_id;
+  const remainingTask = await Tasks.findOne({
+    where: {
+      id: taskId,
+    },
+  });
+  if (!remainingTask) {
+    throw {
+      status: 404,
+      message:
+        "Không tìm thấy phân công công việc hoặc bạn không có quyền thực hiện.",
+    };
+  };
+  await remainingTask.update({
+    status: "COMPLETED"
+  });
+  const serviceOrder = await Service_Order.findOne(
+    {
+      where: {id: serviceOrderId},
+    }
+  );
+  await serviceOrder.update(
+    {
+      status: "PENDING_FINAL_QC",
+    }
+  );
   return taskAssignment;
 };
 
@@ -340,15 +367,20 @@ module.exports.createIssueReports = async (
   const issuesRecords = await Issues.bulkCreate(records);
   await task.update({ status: "COMPLETED" });
   await taskAssignment.update({ status: "COMPLETED" });
-  await notifyRole('RECEPTIONIST', {
-    title: "Có báo cáo lỗi mới",
-    content: `Kỹ thuật viên vừa ghi nhận ${issuesRecords.length} lỗi cần lập báo giá.`,
-    notificationType: 'ISSUE_REPORT',
-    referenceId: task.service_order_id,
-  }, 'new_notification', {
-    type: 'ISSUE_REPORT',
-    serviceOrderId: task.service_order_id,
-  });
+  await notifyRole(
+    "RECEPTIONIST",
+    {
+      title: "Có báo cáo lỗi mới",
+      content: `Kỹ thuật viên vừa ghi nhận ${issuesRecords.length} lỗi cần lập báo giá.`,
+      notificationType: "ISSUE_REPORT",
+      referenceId: task.service_order_id,
+    },
+    "new_notification",
+    {
+      type: "ISSUE_REPORT",
+      serviceOrderId: task.service_order_id,
+    },
+  );
   emitProgress(task.service_order_id, {
     type: "INSPECTION_DONE",
     serviceOrderId: task.service_order_id,
