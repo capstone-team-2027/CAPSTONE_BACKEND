@@ -1,8 +1,20 @@
-const quoteManagementService = require("../../service/technician/quoteManagement.service");
+const { success } = require("zod");
+const quoteManagementService = require("../../service/receptionist/quoteManagement.service");
 const {
   createQuotationSchema,
   updateQuotationSchema,
-} = require("../../validation/technician/quoteManagement.validation");
+} = require("../../validation/receptionist/quoteManagement.validation");
+
+module.exports.getIssueReports = async (req, res) => {
+  try {
+    const result = await quoteManagementService.getIssuesReports();
+    return res.status(200).json({ success: true, data: result });
+  } catch (error) {
+    return res
+      .status(error.status || 500)
+      .json({ message: error.message || "Internal server error" });
+  }
+};
 
 module.exports.getSpareParts = async (req, res) => {
   try {
@@ -17,9 +29,21 @@ module.exports.getSpareParts = async (req, res) => {
   }
 };
 
+module.exports.getAllService = async (req,res) => {
+  try {
+    const result = await quoteManagementService.getAllService();
+    return res.status(200).json({success: true, data: result});
+  } catch (error) {
+    return res.status(error.status || 500).json({
+      message: error.message || "Internal server error",
+    });
+  };
+};
+
 module.exports.createQuotation = async (req, res) => {
   try {
-    const { task_id, items, note, email } = req.body;
+    const receptionistId= res.locals.user.id;
+    const { task_id, items, note } = req.body;
     const validation = createQuotationSchema.safeParse({
       task_id,
       items,
@@ -31,7 +55,8 @@ module.exports.createQuotation = async (req, res) => {
       });
     }
     const result = await quoteManagementService.createQuotation(
-      validation.data, email
+      validation.data,
+      receptionistId,
     );
     return res.status(201).json({
       message: "Tạo báo giá thành công",
@@ -46,6 +71,7 @@ module.exports.createQuotation = async (req, res) => {
 
 module.exports.updateQuotation = async (req, res) => {
   try {
+    const receptionistId = res.locals.user.id;
     const { id } = req.params;
     const { items, note } = req.body;
     const validation = updateQuotationSchema.safeParse({
@@ -60,6 +86,7 @@ module.exports.updateQuotation = async (req, res) => {
     const result = await quoteManagementService.updateQuotation(
       id,
       validation.data,
+      receptionistId,
     );
     return res.status(200).json({
       message: "Cập nhật báo giá thành công",
@@ -70,6 +97,17 @@ module.exports.updateQuotation = async (req, res) => {
       message: error.message || "Internal server error",
     });
   }
+};
+
+
+module.exports.approveQuote = async (req,res) => {
+    try {
+        const {id} = req.params;
+        await quoteManagementService.approveQuotation(id);
+        return res.status(200).json({ message: "Đồng ý báo giá thành công"});
+    } catch (error) {
+        return res.status(error.status || 500).json({ message: error.message || "Internal server error" });
+    };
 };
 
 module.exports.getQuoteHistory = async (req, res) => {

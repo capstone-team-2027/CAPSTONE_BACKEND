@@ -1,4 +1,4 @@
-const { createServiceCatalogSchema } = require("../../validation/admin/serviceCatalog.validation")
+const { createServiceCatalogSchema, viewServiceCatalogSchema } = require("../../validation/admin/serviceCatalog.validation")
 const serviceCatalog = require("../../service/admin/serviceCatalog.service");
 
 module.exports.getServiceCategories = async (req, res) => {
@@ -32,7 +32,39 @@ module.exports.createServiceCatalog = async (req, res) => {
 
 module.exports.getServiceCatalog = async (req, res) => {
     try {
-        const result = await serviceCatalog.getServiceCatalog();
+        const validation = viewServiceCatalogSchema.safeParse(req.query);
+        if (!validation.success) {
+            return res.status(400).json({
+                message: validation.error.errors[0].message || "Tham số không hợp lệ"
+            });
+        }
+        const { q, category_id, is_active, page, limit, all } = validation.data;
+        const result = await serviceCatalog.getServiceCatalog({
+            q,
+            category_id,
+            is_active,
+            page,
+            limit,
+            all,
+        });
+        return res.status(200).json({
+            data: result,
+        });
+    } catch (error) {
+        return res.status(error.status || 500).json({
+            message: error.message || "Internal server error",
+        });
+    }
+};
+
+module.exports.searchServiceCatalog = async (req, res) => {
+    try {
+        const { q, category_id, is_active } = req.query;
+        const result = await serviceCatalog.getServiceCatalog({
+            q,
+            category_id,
+            is_active,
+        });
         return res.status(200).json({
             data: result,
         });

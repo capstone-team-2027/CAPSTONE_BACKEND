@@ -4,9 +4,15 @@ const appointmentController = require("../../controller/receptionist/appointment
 const serviceOrderController = require("../../controller/receptionist/serviceOrder.controller");
 const notificationController = require("../../controller/receptionist/notification.controller");
 const searchController = require("../../controller/receptionist/search.controller");
+const quoteManagementController = require("./../../controller/receptionist/quoteManagement.controller");
 const technicianController = require("../../controller/receptionist/technician.controller");
-// dùng tạm của admin 
-const manageCustomerController = require("../../controller/admin/manageCustomer.controller");
+
+router.get("/issues", quoteManagementController.getIssueReports);
+router.post("/quote", quoteManagementController.createQuotation);
+router.patch("/quote/:id", quoteManagementController.updateQuotation);
+router.get("/quote", quoteManagementController.getQuoteHistory);
+router.get("/spare-parts", quoteManagementController.getSpareParts);
+router.get("/services", quoteManagementController.getAllService);
 
 router.get("/appointments", appointmentController.getAppointment);
 router.get("/appointment/:key", appointmentController.getAppointmentByKey);
@@ -15,7 +21,6 @@ router.post("/appointment/:key/vin", appointmentController.updateVehicleVin);
 router.get("/appointment/:key/vehicle-info", appointmentController.checkVehicleInfo);
 
 router.post("/customer-info-by-phone", searchController.getCustomerInfoByPhone);
-//router customer đang test ( test ở role lễ tân)
 router.get("/customers", appointmentController.getCustomer);
 
 router.post("/service-order", serviceOrderController.createServiceOrder)
@@ -28,11 +33,11 @@ router.get("/notifications/unread-count", notificationController.getUnreadCount)
 router.get("/notification/:id", notificationController.getNotificationById)
 router.put("/notification/:id/read", notificationController.markAsRead)
 
+router.patch("/quotation/:id/approve", quoteManagementController.approveQuote);
 // lấy ra toàn bộ technician làm hôm nay 
 router.get("/technicians/working-today", technicianController.getTechniciansWorkingToday);
 
 // Phân công technician cho 1 yêu cầu cứu hộ
 router.post("/rescue/assign", technicianController.assignRescueTechnician);
-
 
 module.exports = router;

@@ -1,15 +1,15 @@
 /** @type {import("sequelize").ModelStatic<import("sequelize").Model>} */
+const { Op } = require("sequelize");
 const { where } = require("sequelize");
 const db = require("../../../models");
 const { HfInference } = require('@huggingface/inference');
 
-const Service_Categories = db.Service_Categories
-const Service_Catalog = db.Service_Catalog
+const Service_Categories = db.Service_Categories;
+const Service_Catalog = db.Service_Catalog;
 
 const NLLB_LANG_MAP = {
   en: 'eng_Latn'
 };
-
 async function applyCatalogTranslations(t, catalogId, serviceName, description) {
   console.log("--- Bắt đầu applyCatalogTranslations ---");
   const hfToken = process.env.HUGGINGFACE_API_KEY;
@@ -75,10 +75,47 @@ async function applyCatalogTranslations(t, catalogId, serviceName, description) 
     await db.Service_Catalog_Translations.bulkCreate(translationsToInsert, { transaction: t });
   }
 }
+const normalizeBoolean = (value) => {
+  if (typeof value === "boolean") return value;
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === "true") return true;
+    if (normalized === "false") return false;
+  }
+  return undefined;
+};
+
+const buildCatalogWhere = ({ q, category_id, is_active } = {}) => {
+  const where = {};
+
+  if (category_id !== undefined && category_id !== null && category_id !== "") {
+    const parsedCategoryId = Number(category_id);
+    if (Number.isInteger(parsedCategoryId) && parsedCategoryId > 0) {
+      where.category_id = parsedCategoryId;
+    }
+  }
+
+  const normalizedIsActive = normalizeBoolean(is_active);
+  if (normalizedIsActive !== undefined) {
+    where.is_active = normalizedIsActive;
+  }
+
+  if (q) {
+    const keyword = q.toString().trim();
+    if (keyword) {
+      where[Op.or] = [
+        { service_name: { [Op.iLike]: `%${keyword}%` } },
+        { description: { [Op.iLike]: `%${keyword}%` } },
+      ];
+    }
+  }
+
+  return where;
+};
 
 module.exports.getServiceCategories = async () => {
   const categories = await Service_Categories.findAll({
-    attributes: ['id', 'category_name']
+    attributes: ["id", "category_name"],
   });
   return categories;
 };
@@ -113,73 +150,92 @@ module.exports.createServiceCatalog = async (category_id, service_name, descript
   }
 };
 
-module.exports.getServiceCatalog = async () => {
-  const includes = [
-    {
-      model: Service_Categories,
-      as: 'category',
-      attributes: ['category_name']
-    },
-    {
-      model: db.Spare_Parts,
-      as: 'sparePart',
-      attributes: ['id', 'name', 'retail_price']
-    }
-  ];
+module.exports.getServiceCatalog = async (filters = {}) => {
+  const { page, limit, all, ...rest } = filters;
+  const userWhere = buildCatalogWhere(rest);
 
+  const queryOptions = {
+    where: userWhere,
+    attributes: ["id", "category_id", "service_name", "description", "estimated_duration", "labor_price", "spare_part_id", "is_active", "createdAt", "updatedAt"],
+    include: [
+      {
+        model: Service_Categories,
+        as: 'category',
+        attributes: ['category_name']
+      },
+      {
+        model: db.Spare_Parts,
+        as: 'sparePart',
+        attributes: ['id', 'sku', 'name', 'retail_price']
+      }
+
+    ],
+    order: [["createdAt", "DESC"]],
+  };
   if (db.Service_Catalog_Translations) {
-    includes.push({
+    queryOptions.include.push({
       model: db.Service_Catalog_Translations,
       as: "translations",
     });
   }
 
-  const serviceCatalog = await Service_Catalog.findAll({
-    attributes: ['id', 'category_id', 'service_name', 'description', 'estimated_duration', 'is_active', 'labor_price', 'spare_part_id'],
-    include: includes
-  });
-  
   const { mapServicePrices } = require('../../util/calculateServicePrice.util');
-  return mapServicePrices(serviceCatalog);
+
+  if (all || !page) {
+    const serviceCatalog = await Service_Catalog.findAll(queryOptions);
+    return mapServicePrices(serviceCatalog);
+  }
+
+  const pageNum = Number(page) || 1;
+  const limitNum = Number(limit) || 20;
+  const offsetNum = (pageNum - 1) * limitNum;
+
+  queryOptions.limit = limitNum;
+  queryOptions.offset = offsetNum;
+
+  const { count, rows } = await Service_Catalog.findAndCountAll(queryOptions);
+
+  const activeCount = await Service_Catalog.count({
+    where: {
+      ...userWhere,
+      is_active: true
+    }
+  });
+
+  return {
+    page: pageNum,
+    limit: limitNum,
+    total: count,
+    totalActive: activeCount,
+    items: mapServicePrices(rows)
+  };
 };
 
-module.exports.updateServiceCatalog = async (service_catalog_id, category_id, service_name, description, estimated_duration, is_active, labor_price, spare_part_id) => {
+module.exports.updateServiceCatalog = async (service_catalog_id, category_id, service_name, description, estimated_duration, is_active) => {
   const category = await Service_Categories.findOne({
-    where: { id: category_id }
+    where: { id: category_id },
   });
+
   if (!category) {
-    throw { status: 404, message: "Danh mục không tồn tại" }
+    throw { status: 404, message: "Danh mục không tồn tại" };
   }
+
   const serviceCatalog = await Service_Catalog.findOne({
-    where: { id: service_catalog_id }
+    where: { id: service_catalog_id },
   });
+
   if (!serviceCatalog) {
-    throw { status: 404, message: "Dịch vụ không tồn tại" }
+    throw { status: 404, message: "Dịch vụ không tồn tại" };
   }
 
-  const t = await db.sequelize.transaction();
-  try {
-    const oldName = serviceCatalog.service_name;
-    const oldDesc = serviceCatalog.description;
+  await serviceCatalog.update({
+    category_id,
+    service_name,
+    description,
+    estimated_duration,
+    is_active,
+  });
 
-    await serviceCatalog.update({
-      category_id: category_id,
-      service_name: service_name,
-      description: description,
-      estimated_duration: estimated_duration,
-      is_active: is_active,
-      labor_price: labor_price || 0,
-      spare_part_id: spare_part_id || null
-    }, { transaction: t });
+  return serviceCatalog;
+};
 
-    if (service_name !== undefined && (service_name !== oldName || description !== oldDesc)) {
-      await applyCatalogTranslations(t, serviceCatalog.id, service_name, description);
-    }
-
-    await t.commit();
-    return serviceCatalog;
-  } catch (error) {
-    await t.rollback();
-    throw error;
-  }
-}

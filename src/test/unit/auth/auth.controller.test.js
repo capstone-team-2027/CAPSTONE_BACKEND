@@ -66,8 +66,8 @@ describe("register", () => {
     mockRegister.mockResolvedValue(fakeData);
     const req = {
     body: {
+        idToken: "valid-firebase-token",
         fullName: "Nguyen Van A",
-        phone: "0987654321",
         password: "123456",
         confirmPassword: "123456",
     },
@@ -75,13 +75,14 @@ describe("register", () => {
     const res = createMockResponse();
     await controller.register(req, res);
    expect(mockRegister).toHaveBeenCalledWith(
+    "valid-firebase-token",
     "Nguyen Van A",
-    "0987654321",
     "123456",
     "123456"
     );
-    expect(res.status).toHaveBeenCalledWith(201);
+    expect(res.status).toHaveBeenCalledWith(200);
     });
+
   });
 });
 

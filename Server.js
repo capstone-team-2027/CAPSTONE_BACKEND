@@ -1,4 +1,4 @@
-const express = require("express"); // nodemon trigger
+const express = require("express");
 require("dotenv").config();
 const app = express();
 const port = process.env.PORT || 3000;
@@ -14,7 +14,7 @@ const whitelist = [
   "https://www.agm-garage.id.vn",
   "192.168.0.191:8081",
   "https://7fd2-2405-4802-e682-2ac0-e8fe-f026-452b-f047.ngrok-free.app",
-  " https://6f23-2405-4802-e682-2ac0-e8fe-f026-452b-f047.ngrok-free.app "
+  "https://6f23-2405-4802-e682-2ac0-e8fe-f026-452b-f047.ngrok-free.app "
 ];
 app.use(
   cors({

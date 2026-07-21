@@ -1,9 +1,8 @@
 const { changePasswordSchema, } = require("../../validation/auth/change-password-validation");
 const profileService = require("../../service/customer/profile.service");
 const { updateProfileSchema } = require("../../validation/customer/profile.validation");
-const db = require("../../../models");
-/** @type {import("sequelize").ModelStatic<import("sequelize").Model>} */
-const User = db.User;
+const { generateOtp, storeOtp, verifyOtp, sendEmailOtp, sendPhoneOtp } = require("../../util/otp.util");
+const { normalizeVnPhone } = require("../../util/phone.util");
 const cloudinary = require("../../config/cloudinary.config");
 const streamifier = require("streamifier");
 
@@ -28,7 +27,7 @@ module.exports.updateProfile = async (req, res) => {
             return res.status(401).json({ message: "Unauthorized" });
         }
 
-        const { fullName, avatar } = req.body;
+        const { fullName, avatar, email, phone, otpCode } = req.body;
 
         const payloadToValidate = {};
         if (typeof fullName === "string" && fullName.trim().length > 0) {
@@ -37,14 +36,70 @@ module.exports.updateProfile = async (req, res) => {
         if (typeof avatar === "string" && avatar.trim().length > 0) {
             payloadToValidate.avatar = avatar;
         }
+        if (typeof email === "string" && email.trim().length > 0) {
+            payloadToValidate.email = email;
+        }
+        if (typeof phone === "string" && phone.trim().length > 0) {
+            payloadToValidate.phone = phone;
+        }
+        if (typeof otpCode === "string" && otpCode.trim().length > 0) {
+            payloadToValidate.otpCode = otpCode;
+        }
 
         const validation = updateProfileSchema.safeParse(payloadToValidate);
         if (!validation.success) {
             return res.status(400).json({ message: validation.error.issues[0].message });
         }
 
-        if (!validation.data.fullName && !validation.data.avatar && !req.file) {
-            return res.status(400).json({ message: "Vui lòng cung cấp tên hoặc avatar" });
+        const payload = {};
+        if (validation.data.fullName) payload.fullName = validation.data.fullName;
+
+        if (validation.data.email) {
+            if (requestUser.email) {
+                return res.status(400).json({ message: "Email đã được thiết lập trước đó" });
+            }
+            if (!validation.data.otpCode) {
+                const otp = generateOtp();
+                storeOtp("email", validation.data.email, otp);
+                await sendEmailOtp(validation.data.email, otp);
+                return res.status(202).json({
+                    message: "Vui lòng nhập mã OTP để xác thực email",
+                    data: { email: validation.data.email },
+                });
+            }
+            const isOtpValid = verifyOtp("email", validation.data.email, validation.data.otpCode);
+            if (!isOtpValid) {
+                return res.status(400).json({ message: "Mã OTP email không hợp lệ hoặc đã hết hạn" });
+            }
+            payload.email = validation.data.email;
+        }
+
+        if (validation.data.phone) {
+            if (requestUser.phoneNumber) {
+                return res.status(400).json({ message: "Số điện thoại đã được thiết lập trước đó" });
+            }
+            const normalizedPhone = normalizeVnPhone(validation.data.phone);
+            if (!normalizedPhone) {
+                return res.status(400).json({ message: "Số điện thoại không hợp lệ" });
+            }
+            if (!validation.data.otpCode) {
+                const otp = generateOtp();
+                storeOtp("phone", normalizedPhone, otp);
+                await sendPhoneOtp(normalizedPhone, otp);
+                return res.status(202).json({
+                    message: "Vui lòng nhập mã OTP để xác thực số điện thoại",
+                    data: { phoneNumber: normalizedPhone },
+                });
+            }
+            const isOtpValid = verifyOtp("phone", normalizedPhone, validation.data.otpCode);
+            if (!isOtpValid) {
+                return res.status(400).json({ message: "Mã OTP số điện thoại không hợp lệ hoặc đã hết hạn" });
+            }
+            payload.phoneNumber = normalizedPhone;
+        }
+
+        if (!payload.fullName && !payload.email && !payload.phoneNumber && !req.file && !avatar) {
+            return res.status(400).json({ message: "Vui lòng cung cấp tên, email, số điện thoại hoặc avatar" });
         }
 
         let avatarData = validation.data.avatar ?? null;
@@ -72,8 +127,6 @@ module.exports.updateProfile = async (req, res) => {
             }
         }
 
-        const payload = {};
-        if (validation.data.fullName) payload.fullName = validation.data.fullName;
         if (avatarData) payload.avatar = avatarData;
 
         const result = await profileService.updateProfile(requestUser.id, payload);

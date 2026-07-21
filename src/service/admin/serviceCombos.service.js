@@ -1,8 +1,19 @@
+const { Op } = require("sequelize");
 const db = require("../../../models");
 const { HfInference } = require('@huggingface/inference');
 
 const Service_Combo = db.Service_Combo;
 const Service_Catalog = db.Service_Catalog;
+
+const normalizeBoolean = (value) => {
+  if (typeof value === "boolean") return value;
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === "true") return true;
+    if (normalized === "false") return false;
+  }
+  return undefined;
+};
 
 const NLLB_LANG_MAP = {
   en: 'eng_Latn'
@@ -12,19 +23,19 @@ async function applyComboTranslations(t, comboId, comboName, description) {
   console.log("--- Bắt đầu applyComboTranslations ---");
   const hfToken = process.env.HUGGINGFACE_API_KEY;
   console.log("Có HuggingFace Token không?", !!hfToken);
-  
+
   if (!hfToken || !db.Languages || !db.Service_Combo_Translations) {
     console.log("Thiếu cấu hình HF Token hoặc Model DB!");
     return;
   }
-  
+
   const hf = new HfInference(hfToken.trim());
 
   const languages = await db.Languages.findAll({
-    where: { id: 'en' }, 
+    where: { id: 'en' },
     transaction: t
   });
-  
+
   if (languages.length === 0) return;
 
   const translationsToInsert = [];
@@ -45,7 +56,7 @@ async function applyComboTranslations(t, comboId, comboName, description) {
         if (resName && resName.translation_text) translatedName = resName.translation_text;
         else if (Array.isArray(resName) && resName.length > 0) translatedName = resName[0].translation_text;
       }
-      
+
       let translatedDesc = description;
       if (description) {
         const resDesc = await hf.translation({
@@ -55,7 +66,7 @@ async function applyComboTranslations(t, comboId, comboName, description) {
         if (resDesc && resDesc.translation_text) translatedDesc = resDesc.translation_text;
         else if (Array.isArray(resDesc) && resDesc.length > 0) translatedDesc = resDesc[0].translation_text;
       }
-      
+
       translationsToInsert.push({
         serviceComboId: comboId,
         languageId: lang.id,
@@ -73,7 +84,6 @@ async function applyComboTranslations(t, comboId, comboName, description) {
     await db.Service_Combo_Translations.bulkCreate(translationsToInsert, { transaction: t });
   }
 }
-
 const buildComboInclude = () => {
   const includes = [
     {
@@ -106,6 +116,27 @@ const buildComboInclude = () => {
   }
 
   return includes;
+};
+
+const buildComboWhere = ({ q, is_active } = {}) => {
+  const where = {};
+
+  const normalizedIsActive = normalizeBoolean(is_active);
+  if (normalizedIsActive !== undefined) {
+    where.is_active = normalizedIsActive;
+  }
+
+  if (q) {
+    const keyword = q.toString().trim();
+    if (keyword) {
+      where[Op.or] = [
+        { combo_name: { [Op.iLike]: `%${keyword}%` } },
+        { description: { [Op.iLike]: `%${keyword}%` } },
+      ];
+    }
+  }
+
+  return where;
 };
 
 module.exports.createServiceCombo = async (
@@ -171,13 +202,47 @@ module.exports.createServiceCombo = async (
   }
 };
 
-module.exports.listServiceCombos = async () => {
-  const combos = await Service_Combo.findAll({
+module.exports.listServiceCombos = async (options = {}) => {
+  const { page, limit, q, all, is_active } = options;
+
+  const where = buildComboWhere({ q, is_active });
+
+  const queryOptions = {
+    where,
     attributes: ["id", "combo_name", "description", "is_active", "createdAt", "updatedAt"],
     include: buildComboInclude(),
     order: [["createdAt", "DESC"]],
+    distinct: true,
+  };
+
+  if (all || !page) {
+    const combos = await Service_Combo.findAll(queryOptions);
+    return combos;
+  }
+
+  const pageNum = Number(page) || 1;
+  const limitNum = Number(limit) || 20;
+  const offsetNum = (pageNum - 1) * limitNum;
+
+  queryOptions.limit = limitNum;
+  queryOptions.offset = offsetNum;
+
+  const { count, rows } = await Service_Combo.findAndCountAll(queryOptions);
+
+  const activeCount = await Service_Combo.count({
+    where: {
+      ...where,
+      is_active: true
+    }
   });
-  return combos;
+
+  return {
+    page: pageNum,
+    limit: limitNum,
+    total: count,
+    totalActive: activeCount,
+    items: rows,
+  };
 };
 
 module.exports.updateServiceCombo = async (

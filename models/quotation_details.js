@@ -14,6 +14,18 @@ module.exports = (sequelize, DataTypes) => {
           as: "sparePart",
         });
       }
+      if (models.Service_Catalog) {
+        this.belongsTo(models.Service_Catalog, {
+          foreignKey: "service_id",
+          as: "service_catalog",
+        });
+      }
+      if (models.Vehicle_Issues) {
+        this.belongsTo(models.Vehicle_Issues, {
+          foreignKey: "issue_id",
+          as: "issue",
+        });
+      }
     }
   }
   Quotation_Details.init(
@@ -23,6 +35,14 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: false,
       },
 
+      issue_id: {
+        type: DataTypes.INTEGER,
+        allowNull: true, // null nếu dòng báo giá không gắn với lỗi cụ thể (VD: phí công chung, phụ phí)
+      },
+      service_id: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+      },
       spare_part_id: {
         type: DataTypes.INTEGER,
         allowNull: true,
@@ -44,6 +64,14 @@ module.exports = (sequelize, DataTypes) => {
       amount: {
         type: DataTypes.DECIMAL(12, 2),
         allowNull: false,
+      },
+      status: {
+        type: DataTypes.STRING(50),
+        allowNull: false,
+        defaultValue: "PENDING",
+        validate: {
+          isIn: [["PENDING", "EXPORTED"]],
+        },
       },
     },
     {

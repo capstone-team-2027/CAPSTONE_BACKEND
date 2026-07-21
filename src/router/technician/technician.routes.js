@@ -3,14 +3,12 @@ const express = require("express");
 const router = express.Router();
 const taskAssignment = require("./../../controller/technician/taskAssignment.controller");
 const notificationController = require("./../../controller/technician/notification.controller");
-const quoteManagementController = require("./../../controller/technician/quoteManagement.controller");
 const techShiftController = require("./../../controller/technician/shift.controller")
 
-router.post("/quote", quoteManagementController.createQuotation);
-router.patch("/quote/:id", quoteManagementController.updateQuotation);
-router.get("/quote", quoteManagementController.getQuoteHistory);
-router.get("/spare-parts", quoteManagementController.getSpareParts);
 
+router.get("/issues", taskAssignment.getIssuesReportHistory);
+router.post("/issues", taskAssignment.createIssuesReport);
+router.get("/component", taskAssignment.getAllComponents);
 router.get("/task-assignments", taskAssignment.getTaskAssignment);
 router.get("/service-orders/:id", taskAssignment.getServiceOrderDetail);
 router.put("/task-assignments/start", taskAssignment.startTask);
