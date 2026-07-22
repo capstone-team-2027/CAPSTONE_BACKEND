@@ -1,6 +1,6 @@
 const { success } = require("zod");
 const taskAssignmentService = require("../../service/technician/taskAssignment.service");
-const {createIssueReportSchema} = require ("../../validation/technician/taskAssignment.validation");
+const { createIssueReportSchema } = require("../../validation/technician/taskAssignment.validation");
 
 module.exports.getTaskAssignment = async (req, res) => {
   try {
@@ -71,10 +71,19 @@ module.exports.completeTask = async (req, res) => {
   try {
     const { taskAssignmentId } = req.body;
     const technicianId = res.locals.user.id;
+
+    if (!taskAssignmentId) {
+      return res.status(400).json({
+        success: false,
+        message: "Vui lòng truyền taskAssignmentId vào body."
+      });
+    }
+
     const result = await taskAssignmentService.completeTask(
       taskAssignmentId,
       technicianId,
     );
+
     return res.status(200).json({
       success: true,
       message: "Đã hoàn thành công việc thành công.",
@@ -89,19 +98,65 @@ module.exports.completeTask = async (req, res) => {
   }
 };
 
-module.exports.getAllComponents = async (req,res) => {
-    try {
-        const result = await taskAssignmentService.getAllComponents();
-        return res.status(200).json({success: true, data: result})
-    } catch (error) {
-        return res.status(500).json({success: false, message: error.message})
+module.exports.startRescueTask = async (req, res) => {
+  try {
+    const { rescueId, status } = req.body;
+    const technicianId = res.locals.user.id;
+
+    if (!rescueId) {
+      return res.status(400).json({
+        success: false,
+        message: "Vui lòng truyền rescueId vào body."
+      });
     }
+
+    const result = await taskAssignmentService.startRescueTask(rescueId, technicianId, status);
+
+    return res.status(200).json({
+      success: true,
+      message: "Cập nhật trạng thái nhiệm vụ cứu hộ thành công.",
+      data: result
+    });
+  } catch (error) {
+    console.error("Error in startRescueTask:", error);
+    return res.status(error.status || 500).json({
+      success: false,
+      message: error.message || "Đã xảy ra lỗi khi nhận/bắt đầu nhiệm vụ cứu hộ."
+    });
+  }
+};
+
+module.exports.getMyActiveRescue = async (req, res) => {
+  try {
+    const technicianId = res.locals.user.id;
+    const result = await taskAssignmentService.getMyActiveRescue(technicianId);
+
+    return res.status(200).json({
+      success: true,
+      data: result
+    });
+  } catch (error) {
+    console.error("Error in getMyActiveRescue:", error);
+    return res.status(error.status || 500).json({
+      success: false,
+      message: error.message || "Đã xảy ra lỗi khi lấy nhiệm vụ cứu hộ."
+    });
+  }
+};
+
+module.exports.getAllComponents = async (req, res) => {
+  try {
+    const result = await taskAssignmentService.getAllComponents();
+    return res.status(200).json({ success: true, data: result })
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message })
+  }
 };
 
 module.exports.createIssuesReport = async (req, res) => {
   try {
     const technicianId = res.locals.user.id;
-    const {task_id, note, issues} = req.body;
+    const { task_id, note, issues } = req.body;
     const validation = createIssueReportSchema.safeParse({ task_id, issues, note, technicianId });
     if (!validation.success) {
       return res.status(400).json({
@@ -110,10 +165,10 @@ module.exports.createIssuesReport = async (req, res) => {
     };
     const result = await taskAssignmentService.createIssueReports(task_id, issues, note, technicianId);
     return res.status(201).json({
-        success: true,
-        message: "Tạo báo cáo kiểm tra thành công",
-        data: result,
-      });
+      success: true,
+      message: "Tạo báo cáo kiểm tra thành công",
+      data: result,
+    });
   } catch (error) {
     return res.status(error.status || 500).json({
       success: false,
@@ -126,11 +181,11 @@ module.exports.getIssuesReportHistory = async (req, res) => {
   try {
     const technicianId = res.locals.user.id;
     const result = await taskAssignmentService.getIssuesReportHistory(technicianId);
-    return res.status(200).json({success: true,data: result});
+    return res.status(200).json({ success: true, data: result });
   } catch (error) {
     return res.status(error.status || 500).json({
       success: false,
       message: error.message || "Đã xảy ra lỗi.",
     });
-    }
+  }
 }

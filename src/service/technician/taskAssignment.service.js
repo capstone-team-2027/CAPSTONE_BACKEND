@@ -1,4 +1,4 @@
-const { where } = require("sequelize");
+const {Op, where } = require("sequelize");
 const db = require("../../../models");
 const { includes } = require("zod");
 const Issues = db.Vehicle_Issues;
@@ -295,38 +295,31 @@ module.exports.completeTask = async (taskAssignmentId, technicianId) => {
     status: "COMPLETED",
     actual_end_time: new Date(),
   });
-  emitProgress(taskAssignment.task.service_order_id, {
-    type: "COMPLETED",
-    taskId: taskAssignment.task.id,
-  });
   const taskId = taskAssignment.task.id;
   const serviceOrderId = taskAssignment.task.service_order_id;
-  const remainingTask = await Tasks.findOne({
-    where: {
-      id: taskId,
-    },
+  // Chỉ đóng task khi MỌI assignment của nó đã xong
+  const remainingAsg = await Task_Assignments.count({
+    where: { task_id: taskId, status: { [Op.ne]: "COMPLETED" } },
   });
-  if (!remainingTask) {
-    throw {
-      status: 404,
-      message:
-        "Không tìm thấy phân công công việc hoặc bạn không có quyền thực hiện.",
-    };
-  };
-  await remainingTask.update({
-    status: "COMPLETED"
+  if (remainingAsg === 0) {
+    await Tasks.update({ status: "COMPLETED" }, { where: { id: taskId } });
+    // Chỉ đưa xe vào nghiệm thu khi MỌI task đã xong
+    const remainingTasks = await Tasks.count({
+      where: { service_order_id: serviceOrderId, status: { [Op.ne]: "COMPLETED" } },
+    });
+    if (remainingTasks === 0) {
+      await Service_Order.update(
+        { status: "PENDING_FINAL_QC" },
+        { where: { id: serviceOrderId } },
+      );
+    }
+  }
+  emitProgress(serviceOrderId, {
+    type: "PROGRESS_UPDATED",
+    taskId,
   });
-  const serviceOrder = await Service_Order.findOne(
-    {
-      where: {id: serviceOrderId},
-    }
-  );
-  await serviceOrder.update(
-    {
-      status: "PENDING_FINAL_QC",
-    }
-  );
-  return taskAssignment;
+    return taskAssignment;
+
 };
 
 module.exports.getAllComponents = async () => {
@@ -460,4 +453,82 @@ module.exports.getIssuesReportHistory = async (technicianId) => {
   });
 
   return issues;
+};
+
+module.exports.startRescueTask = async (rescueId, technicianId, newStatus) => {
+    const rescue = await db.Rescue_Requests.findByPk(rescueId, {
+        include: [
+            { model: db.Customers, as: 'customer' }
+        ]
+    });
+
+    if (!rescue) {
+        throw { status: 404, message: "Không tìm thấy yêu cầu cứu hộ" };
+    }
+
+    if (rescue.technician_id !== technicianId) {
+        throw { status: 403, message: "Bạn không được phân công yêu cầu cứu hộ này" };
+    }
+
+    // Cho phép chuyển đổi linh hoạt: từ ASSIGNED -> ACCEPTED, từ ACCEPTED -> EN_ROUTE, ...
+    if (newStatus) {
+        rescue.status = newStatus;
+    } else {
+        // Mặc định nếu không truyền thì hiểu là Bắt đầu đi (EN_ROUTE) hoặc Nhận (ACCEPTED) tuỳ status hiện tại
+        if (rescue.status === 'ASSIGNED') {
+            rescue.status = 'ACCEPTED';
+        } else if (rescue.status === 'ACCEPTED') {
+            rescue.status = 'EN_ROUTE';
+        }
+    }
+
+    await rescue.save();
+
+    if (rescue.status === 'EN_ROUTE' && global._io) {
+        const userId = rescue.customer?.user_id || rescue.customer_id;
+        // Gửi cho lễ tân (global) hoặc có thể gửi cụ thể nếu có room lễ tân
+        global._io.emit('rescue-vehicle-moving', {
+            rescueId: rescue.id,
+            technicianId,
+            customerId: userId,
+            customerLat: rescue.customer_lat,
+            customerLng: rescue.customer_lng
+        });
+        
+        // Gửi cho khách hàng cụ thể
+        global._io.to(`customer_${userId}`).emit('rescue-vehicle-moving', {
+            rescueId: rescue.id,
+            technicianId
+        });
+    }
+
+    return rescue;
+};
+
+module.exports.getMyActiveRescue = async (technicianId) => {
+    const rescue = await db.Rescue_Requests.findOne({
+        where: {
+            technician_id: technicianId,
+            status: {
+                [db.Sequelize.Op.in]: ['ASSIGNED', 'ACCEPTED', 'EN_ROUTE', 'ARRIVED', 'IN_PROGRESS']
+            }
+        },
+        include: [
+            {
+                model: db.Customers,
+                as: 'customer',
+                attributes: ['id', 'name', 'phone'],
+                include: [
+                    {
+                        model: db.User,
+                        as: 'user',
+                        attributes: ['id', 'fullName', 'phoneNumber', 'avatar']
+                    }
+                ]
+            }
+        ],
+        order: [['createdAt', 'DESC']]
+    });
+
+    return rescue;
 };

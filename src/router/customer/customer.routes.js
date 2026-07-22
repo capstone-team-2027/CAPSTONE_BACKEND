@@ -14,6 +14,7 @@ router.get("/repair-progress", serviceHistoryAndTrackingController.getRepairProg
 router.get("/profile", profileController.getProfile);
 router.put("/profile", upload.single("avatar"), profileController.updateProfile);
 router.put("/change-password", profileController.changePassword);
+router.patch("/location", profileController.updateLocation);
 
 router.get("/appointment", appointmentController.getAppointment);
 router.post("/appointment", appointmentController.createAppointment);
