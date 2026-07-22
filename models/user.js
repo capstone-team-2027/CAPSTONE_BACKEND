@@ -116,6 +116,14 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.BOOLEAN,
         defaultValue: false,
       },
+      latitude: {
+        type: DataTypes.FLOAT,
+        allowNull: true,
+      },
+      longitude: {
+        type: DataTypes.FLOAT,
+        allowNull: true,
+      },
     },
 
     {
