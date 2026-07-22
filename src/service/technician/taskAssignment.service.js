@@ -1,4 +1,4 @@
-const { where } = require("sequelize");
+const {Op, where } = require("sequelize");
 const db = require("../../../models");
 const { includes } = require("zod");
 const Issues = db.Vehicle_Issues;
@@ -295,38 +295,31 @@ module.exports.completeTask = async (taskAssignmentId, technicianId) => {
     status: "COMPLETED",
     actual_end_time: new Date(),
   });
-  emitProgress(taskAssignment.task.service_order_id, {
-    type: "COMPLETED",
-    taskId: taskAssignment.task.id,
-  });
   const taskId = taskAssignment.task.id;
   const serviceOrderId = taskAssignment.task.service_order_id;
-  const remainingTask = await Tasks.findOne({
-    where: {
-      id: taskId,
-    },
+  // Chỉ đóng task khi MỌI assignment của nó đã xong
+  const remainingAsg = await Task_Assignments.count({
+    where: { task_id: taskId, status: { [Op.ne]: "COMPLETED" } },
   });
-  if (!remainingTask) {
-    throw {
-      status: 404,
-      message:
-        "Không tìm thấy phân công công việc hoặc bạn không có quyền thực hiện.",
-    };
-  };
-  await remainingTask.update({
-    status: "COMPLETED"
+  if (remainingAsg === 0) {
+    await Tasks.update({ status: "COMPLETED" }, { where: { id: taskId } });
+    // Chỉ đưa xe vào nghiệm thu khi MỌI task đã xong
+    const remainingTasks = await Tasks.count({
+      where: { service_order_id: serviceOrderId, status: { [Op.ne]: "COMPLETED" } },
+    });
+    if (remainingTasks === 0) {
+      await Service_Order.update(
+        { status: "PENDING_FINAL_QC" },
+        { where: { id: serviceOrderId } },
+      );
+    }
+  }
+  emitProgress(serviceOrderId, {
+    type: "PROGRESS_UPDATED",
+    taskId,
   });
-  const serviceOrder = await Service_Order.findOne(
-    {
-      where: {id: serviceOrderId},
-    }
-  );
-  await serviceOrder.update(
-    {
-      status: "PENDING_FINAL_QC",
-    }
-  );
-  return taskAssignment;
+    return taskAssignment;
+
 };
 
 module.exports.getAllComponents = async () => {
